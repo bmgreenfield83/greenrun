@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "name": "Two-Week Base Example",
+  "description": "A small import-compatible example with explicit dates.",
+  "primary_goal": "Build consistent aerobic volume.",
+  "secondary_goal": "Prepare to add faster workouts safely.",
+  "start_date": "2026-08-03",
+  "week_starts_on": "monday",
+  "weeks": [
+    {
+      "week_number": 1,
+      "focus": "Comfortable consistency",
+      "planned_running_miles": 8,
+      "sessions": [
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-08-04",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy run",
+          "planned_distance_miles": 3,
+          "instructions": "Keep the effort conversational.",
+          "justification": "Builds aerobic support for the primary goal without adding excessive fatigue."
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-08-08",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long run",
+          "planned_distance_miles": 5,
+          "instructions": "Run easily throughout."
+        }
+      ]
+    },
+    {
+      "week_number": 2,
+      "focus": "Repeat and absorb",
+      "planned_running_miles": 9,
+      "sessions": [
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-08-12",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Midweek easy run",
+          "planned_distance_miles": 4
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-08-15",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long run",
+          "planned_distance_miles": 5
+        }
+      ]
+    }
+  ]
+}

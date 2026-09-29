@@ -1,0 +1,5 @@
+ACTIVITIES = "activities"
+ACTIVITY_SAMPLES = "activity_samples"
+TRAINING_PLANS = "training_plans"
+PLANNED_SESSIONS = "planned_sessions"
+APP_SETTINGS = "app_settings"

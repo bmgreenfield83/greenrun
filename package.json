@@ -1,0 +1,23 @@
+{
+  "name": "greenrun",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "concurrently -k -n backend,frontend -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "py -3.12 -m uvicorn app.main:app --reload --app-dir backend --host 0.0.0.0 --port 8000",
+    "dev:frontend": "npm --prefix frontend run dev -- --host 0.0.0.0",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "py -3.12 -m pytest backend/tests",
+    "test:frontend": "npm --prefix frontend run test",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "py -3.12 -m ruff check backend",
+    "lint:frontend": "npm --prefix frontend run lint",
+    "format": "py -3.12 -m ruff format backend && npm --prefix frontend run format",
+    "format:check": "py -3.12 -m ruff format --check backend && npm --prefix frontend run format:check",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "build": "npm --prefix frontend run build",
+    "check:database": "py -3.12 -m app.db.check",
+    "init:database": "py -3.12 -m app.db.initialize"
+  },
+  "devDependencies": { "concurrently": "^9.2.0" }
+}

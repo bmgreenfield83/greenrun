@@ -1,0 +1,712 @@
+{
+  "schema_version": "1.0",
+  "name": "12-Week Running Plan — Summer/Fall 2026",
+  "description": "Existing 12-week running plan. Calendar week begins Monday, July 27, 2026, with the first run on Tuesday, July 28. Includes the 10-mile race on August 30 and a final 5K assessment.",
+  "start_date": "2026-07-27",
+  "week_starts_on": "monday",
+  "weeks": [
+    {
+      "week_number": 1,
+      "focus": "Establish the routine",
+      "planned_running_miles": 22,
+      "sessions": [
+        {
+          "day_of_week": "monday",
+          "scheduled_date": "2026-07-27",
+          "sport": "strength",
+          "session_type": "strength",
+          "title": "Rest / optional strength",
+          "planned_duration_minutes": 30,
+          "instructions": "25–35 minutes of controlled strength. Keep it moderate enough that Tuesday's workout is unaffected."
+        },
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-07-28",
+          "sport": "run",
+          "session_type": "track",
+          "title": "Threshold intervals",
+          "instructions": "Warm up 10–15 minutes, then 4 × 5 minutes comfortably hard with 90 seconds easy jogging. Cool down 10 minutes."
+        },
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-07-29",
+          "sport": "run",
+          "session_type": "run_club",
+          "title": "Run club 5K",
+          "instructions": "Run conversationally with a natural stride. Do not force a heart-rate ceiling or race the final mile.",
+          "planned_distance_miles": 3.1
+        },
+        {
+          "day_of_week": "thursday",
+          "scheduled_date": "2026-07-30",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy aerobic",
+          "instructions": "4 miles relaxed. Judge the effort by breathing and repeatability, not a rigid heart-rate number.",
+          "planned_distance_miles": 4
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-08-01",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy + strides",
+          "instructions": "4 miles easy, then 4 × 20 seconds relaxed strides with full easy recovery.",
+          "planned_distance_miles": 4
+        },
+        {
+          "day_of_week": "sunday",
+          "scheduled_date": "2026-08-02",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long easy",
+          "instructions": "7 miles relaxed. Short walk breaks are fine if heat or cardiac drift becomes excessive.",
+          "planned_distance_miles": 7
+        }
+      ]
+    },
+    {
+      "week_number": 2,
+      "focus": "Build aerobic volume",
+      "planned_running_miles": 24,
+      "sessions": [
+        {
+          "day_of_week": "monday",
+          "scheduled_date": "2026-08-03",
+          "sport": "strength",
+          "session_type": "strength",
+          "title": "Rest / optional strength",
+          "planned_duration_minutes": 30,
+          "instructions": "25–35 minutes controlled strength."
+        },
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-08-04",
+          "sport": "run",
+          "session_type": "track",
+          "title": "Aerobic intervals",
+          "instructions": "Warm up, then 5 × 1,000 m at roughly 10K effort with 2 minutes easy jogging. Keep every repetition controlled."
+        },
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-08-05",
+          "sport": "run",
+          "session_type": "run_club",
+          "title": "Run club 5K",
+          "instructions": "Easy and conversational.",
+          "planned_distance_miles": 3.1
+        },
+        {
+          "day_of_week": "thursday",
+          "scheduled_date": "2026-08-06",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy aerobic",
+          "instructions": "4–5 miles relaxed.",
+          "planned_distance_miles": 4.5
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-08-08",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy + strides",
+          "instructions": "4–5 miles easy, then 5 × 20 seconds relaxed strides.",
+          "planned_distance_miles": 4.5
+        },
+        {
+          "day_of_week": "sunday",
+          "scheduled_date": "2026-08-09",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long easy",
+          "instructions": "8 miles relaxed.",
+          "planned_distance_miles": 8
+        }
+      ]
+    },
+    {
+      "week_number": 3,
+      "focus": "10-mile strength",
+      "planned_running_miles": 26,
+      "sessions": [
+        {
+          "day_of_week": "monday",
+          "scheduled_date": "2026-08-10",
+          "sport": "strength",
+          "session_type": "strength",
+          "title": "Rest / optional strength",
+          "planned_duration_minutes": 30,
+          "instructions": "25–35 minutes controlled strength."
+        },
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-08-11",
+          "sport": "run",
+          "session_type": "track",
+          "title": "Threshold development",
+          "instructions": "Warm up, then 3 × 8 minutes at threshold effort with 2 minutes easy jogging. Cool down."
+        },
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-08-12",
+          "sport": "run",
+          "session_type": "run_club",
+          "title": "Run club 5K",
+          "instructions": "Easy first 2 miles; optional moderate final mile only if recovered from Tuesday.",
+          "planned_distance_miles": 3.1
+        },
+        {
+          "day_of_week": "thursday",
+          "scheduled_date": "2026-08-13",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy aerobic",
+          "instructions": "5 miles relaxed.",
+          "planned_distance_miles": 5
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-08-15",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy + strides",
+          "instructions": "5 miles easy, then 5–6 × 20 seconds relaxed strides.",
+          "planned_distance_miles": 5
+        },
+        {
+          "day_of_week": "sunday",
+          "scheduled_date": "2026-08-16",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long run",
+          "instructions": "9 miles easy. Do not fast-finish this one.",
+          "planned_distance_miles": 9
+        }
+      ]
+    },
+    {
+      "week_number": 4,
+      "focus": "Peak race-specific week",
+      "planned_running_miles": 28,
+      "sessions": [
+        {
+          "day_of_week": "monday",
+          "scheduled_date": "2026-08-17",
+          "sport": "strength",
+          "session_type": "strength",
+          "title": "Rest / optional strength",
+          "planned_duration_minutes": 30,
+          "instructions": "Light strength only; reduce lower-body volume slightly."
+        },
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-08-18",
+          "sport": "run",
+          "session_type": "track",
+          "title": "Cruise intervals",
+          "instructions": "Warm up, then 3 × 1 mile at threshold effort with 2–3 minutes easy jogging. Keep this controlled rather than racing the reps."
+        },
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-08-19",
+          "sport": "run",
+          "session_type": "run_club",
+          "title": "Run club 5K",
+          "instructions": "Easy and conversational.",
+          "planned_distance_miles": 3.1
+        },
+        {
+          "day_of_week": "thursday",
+          "scheduled_date": "2026-08-20",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy aerobic",
+          "instructions": "5 miles relaxed.",
+          "planned_distance_miles": 5
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-08-22",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy + strides",
+          "instructions": "4–5 miles easy, then 4 × 20 seconds relaxed strides.",
+          "planned_distance_miles": 4.5
+        },
+        {
+          "day_of_week": "sunday",
+          "scheduled_date": "2026-08-23",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long run",
+          "instructions": "10 miles easy. This is the final long run before race week.",
+          "planned_distance_miles": 10
+        }
+      ]
+    },
+    {
+      "week_number": 5,
+      "focus": "Taper and 10-mile race",
+      "planned_running_miles": 22,
+      "sessions": [
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-08-25",
+          "sport": "run",
+          "session_type": "race",
+          "title": "Race tune-up",
+          "instructions": "Warm up, then 4 × 400 m at approximately 10K effort with 400 m very easy jogging. Finish feeling fresh."
+        },
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-08-26",
+          "sport": "run",
+          "session_type": "run_club",
+          "title": "Run club 5K",
+          "instructions": "Run very easy. No progression finish.",
+          "planned_distance_miles": 3.1
+        },
+        {
+          "day_of_week": "thursday",
+          "scheduled_date": "2026-08-27",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy aerobic",
+          "instructions": "3–4 miles relaxed.",
+          "planned_distance_miles": 3.5
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-08-29",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Shakeout",
+          "instructions": "2–3 very easy miles with 3 × 15-second relaxed strides, or rest if you feel better without a shakeout.",
+          "planned_distance_miles": 2.5
+        },
+        {
+          "day_of_week": "sunday",
+          "scheduled_date": "2026-08-30",
+          "sport": "run",
+          "session_type": "race",
+          "title": "10-mile race",
+          "instructions": "Race day: warm up briefly, start conservatively, and avoid turning the first 2 miles into a 10K effort.",
+          "planned_distance_miles": 10
+        }
+      ]
+    },
+    {
+      "week_number": 6,
+      "focus": "Post-race recovery",
+      "planned_running_miles": 16.5,
+      "sessions": [
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-09-01",
+          "sport": "run",
+          "session_type": "track",
+          "title": "Recovery",
+          "instructions": "Rest or 20–30 minutes very easy if your legs feel surprisingly good.",
+          "planned_duration_minutes": 25
+        },
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-09-02",
+          "sport": "run",
+          "session_type": "run_club",
+          "title": "Run club 5K",
+          "instructions": "Easy only. Skip it if soreness changes your stride.",
+          "planned_distance_miles": 3.1
+        },
+        {
+          "day_of_week": "thursday",
+          "scheduled_date": "2026-09-03",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy aerobic",
+          "instructions": "3–4 miles easy.",
+          "planned_distance_miles": 3.5
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-09-05",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy",
+          "instructions": "4 miles relaxed; no strides unless fully recovered.",
+          "planned_distance_miles": 4
+        },
+        {
+          "day_of_week": "sunday",
+          "scheduled_date": "2026-09-06",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long easy",
+          "instructions": "6–7 miles relaxed.",
+          "planned_distance_miles": 6.5
+        }
+      ]
+    },
+    {
+      "week_number": 7,
+      "focus": "Resume normal training",
+      "planned_running_miles": 25,
+      "sessions": [
+        {
+          "day_of_week": "monday",
+          "scheduled_date": "2026-09-07",
+          "sport": "strength",
+          "session_type": "strength",
+          "title": "Rest / optional strength",
+          "planned_duration_minutes": 30,
+          "instructions": "Resume controlled strength."
+        },
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-09-08",
+          "sport": "run",
+          "session_type": "track",
+          "title": "5K rhythm",
+          "instructions": "Warm up, then 8 × 400 m at current 5K effort with 200 m easy jogging."
+        },
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-09-09",
+          "sport": "run",
+          "session_type": "run_club",
+          "title": "Run club 5K",
+          "instructions": "Easy and conversational.",
+          "planned_distance_miles": 3.1
+        },
+        {
+          "day_of_week": "thursday",
+          "scheduled_date": "2026-09-10",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy aerobic",
+          "instructions": "5 miles relaxed.",
+          "planned_distance_miles": 5
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-09-12",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy + strides",
+          "instructions": "5 miles easy, then 5 × 20 seconds relaxed strides.",
+          "planned_distance_miles": 5
+        },
+        {
+          "day_of_week": "sunday",
+          "scheduled_date": "2026-09-13",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long easy",
+          "instructions": "8 miles relaxed.",
+          "planned_distance_miles": 8
+        }
+      ]
+    },
+    {
+      "week_number": 8,
+      "focus": "Threshold progression",
+      "planned_running_miles": 27,
+      "sessions": [
+        {
+          "day_of_week": "monday",
+          "scheduled_date": "2026-09-14",
+          "sport": "strength",
+          "session_type": "strength",
+          "title": "Rest / optional strength",
+          "planned_duration_minutes": 30,
+          "instructions": "25–35 minutes controlled strength."
+        },
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-09-15",
+          "sport": "run",
+          "session_type": "track",
+          "title": "Threshold intervals",
+          "instructions": "Warm up, then 4 × 6 minutes at threshold effort with 90 seconds easy jogging."
+        },
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-09-16",
+          "sport": "run",
+          "session_type": "run_club",
+          "title": "Run club 5K",
+          "instructions": "Easy; optional moderate final mile if Tuesday felt controlled.",
+          "planned_distance_miles": 3.1
+        },
+        {
+          "day_of_week": "thursday",
+          "scheduled_date": "2026-09-17",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy aerobic",
+          "instructions": "5 miles relaxed.",
+          "planned_distance_miles": 5
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-09-19",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy + strides",
+          "instructions": "5 miles easy, then 6 × 20 seconds relaxed strides.",
+          "planned_distance_miles": 5
+        },
+        {
+          "day_of_week": "sunday",
+          "scheduled_date": "2026-09-20",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long easy",
+          "instructions": "9 miles relaxed.",
+          "planned_distance_miles": 9
+        }
+      ]
+    },
+    {
+      "week_number": 9,
+      "focus": "Cutback and absorb",
+      "planned_running_miles": 23,
+      "sessions": [
+        {
+          "day_of_week": "monday",
+          "scheduled_date": "2026-09-21",
+          "sport": "strength",
+          "session_type": "strength",
+          "title": "Rest / optional strength",
+          "planned_duration_minutes": 30,
+          "instructions": "Light-to-moderate strength."
+        },
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-09-22",
+          "sport": "run",
+          "session_type": "track",
+          "title": "Hill strength",
+          "instructions": "8 × 60 seconds uphill with easy jogging back down. Powerful but controlled."
+        },
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-09-23",
+          "sport": "run",
+          "session_type": "run_club",
+          "title": "Run club 5K",
+          "instructions": "Easy and conversational.",
+          "planned_distance_miles": 3.1
+        },
+        {
+          "day_of_week": "thursday",
+          "scheduled_date": "2026-09-24",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy aerobic",
+          "instructions": "4–5 miles relaxed.",
+          "planned_distance_miles": 4.5
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-09-26",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy",
+          "instructions": "4–5 miles relaxed.",
+          "planned_distance_miles": 4.5
+        },
+        {
+          "day_of_week": "sunday",
+          "scheduled_date": "2026-09-27",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long easy",
+          "instructions": "7–8 miles relaxed.",
+          "planned_distance_miles": 7.5
+        }
+      ]
+    },
+    {
+      "week_number": 10,
+      "focus": "5K-specific development",
+      "planned_running_miles": 29,
+      "sessions": [
+        {
+          "day_of_week": "monday",
+          "scheduled_date": "2026-09-28",
+          "sport": "strength",
+          "session_type": "strength",
+          "title": "Rest / optional strength",
+          "planned_duration_minutes": 30,
+          "instructions": "25–35 minutes controlled strength."
+        },
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-09-29",
+          "sport": "run",
+          "session_type": "track",
+          "title": "5K intervals",
+          "instructions": "Warm up, then 6 × 800 m at current 5K effort with 2½ minutes easy jogging."
+        },
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-09-30",
+          "sport": "run",
+          "session_type": "run_club",
+          "title": "Run club 5K",
+          "instructions": "Easy and conversational.",
+          "planned_distance_miles": 3.1
+        },
+        {
+          "day_of_week": "thursday",
+          "scheduled_date": "2026-10-01",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy aerobic",
+          "instructions": "5–6 miles relaxed.",
+          "planned_distance_miles": 5.5
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-10-03",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy + strides",
+          "instructions": "5 miles easy, then 6 × 20 seconds relaxed strides.",
+          "planned_distance_miles": 5
+        },
+        {
+          "day_of_week": "sunday",
+          "scheduled_date": "2026-10-04",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long easy",
+          "instructions": "9–10 miles relaxed.",
+          "planned_distance_miles": 9.5
+        }
+      ]
+    },
+    {
+      "week_number": 11,
+      "focus": "Sustained aerobic strength",
+      "planned_running_miles": 30,
+      "sessions": [
+        {
+          "day_of_week": "monday",
+          "scheduled_date": "2026-10-05",
+          "sport": "strength",
+          "session_type": "strength",
+          "title": "Rest / optional strength",
+          "planned_duration_minutes": 30,
+          "instructions": "25–35 minutes controlled strength."
+        },
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-10-06",
+          "sport": "run",
+          "session_type": "track",
+          "title": "Threshold miles",
+          "instructions": "Warm up, then 3 × 1 mile at threshold effort with 2 minutes easy jogging."
+        },
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-10-07",
+          "sport": "run",
+          "session_type": "run_club",
+          "title": "Run club 5K",
+          "instructions": "Easy first 2 miles; optional moderate final mile.",
+          "planned_distance_miles": 3.1
+        },
+        {
+          "day_of_week": "thursday",
+          "scheduled_date": "2026-10-08",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy aerobic",
+          "instructions": "5–6 miles relaxed.",
+          "planned_distance_miles": 5.5
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-10-10",
+          "sport": "run",
+          "session_type": "easy",
+          "title": "Easy + strides",
+          "instructions": "5–6 miles easy, then 4–6 × 20 seconds relaxed strides.",
+          "planned_distance_miles": 5.5
+        },
+        {
+          "day_of_week": "sunday",
+          "scheduled_date": "2026-10-11",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long easy",
+          "instructions": "10 miles relaxed.",
+          "planned_distance_miles": 10
+        }
+      ]
+    },
+    {
+      "week_number": 12,
+      "focus": "Consolidate and assess",
+      "planned_running_miles": 26.5,
+      "sessions": [
+        {
+          "day_of_week": "monday",
+          "scheduled_date": "2026-10-12",
+          "sport": "strength",
+          "session_type": "strength",
+          "title": "Rest / optional strength",
+          "planned_duration_minutes": 30,
+          "instructions": "Light strength."
+        },
+        {
+          "day_of_week": "tuesday",
+          "scheduled_date": "2026-10-13",
+          "sport": "run",
+          "session_type": "track",
+          "title": "Sharpening",
+          "instructions": "Warm up, then 6 × 400 m slightly faster than 5K pace with 400 m very easy jogging."
+        },
+        {
+          "day_of_week": "wednesday",
+          "scheduled_date": "2026-10-14",
+          "sport": "run",
+          "session_type": "run_club",
+          "title": "Run club 5K",
+          "instructions": "Use this as a controlled 5K assessment or keep it easy and test on Saturday.",
+          "planned_distance_miles": 3.1
+        },
+        {
+          "day_of_week": "thursday",
+          "scheduled_date": "2026-10-15",
+          "sport": "run",
+          "session_type": "recovery",
+          "title": "Recovery",
+          "instructions": "3–4 miles very easy or rest.",
+          "planned_distance_miles": 3.5
+        },
+        {
+          "day_of_week": "saturday",
+          "scheduled_date": "2026-10-17",
+          "sport": "run",
+          "session_type": "other",
+          "title": "Easy or 5K test",
+          "instructions": "If you did not assess Wednesday, run a proper 5K test today after a full warm-up. Otherwise run 4–5 miles easy.",
+          "planned_distance_miles": 4.5
+        },
+        {
+          "day_of_week": "sunday",
+          "scheduled_date": "2026-10-18",
+          "sport": "run",
+          "session_type": "long",
+          "title": "Long easy",
+          "instructions": "8 miles relaxed.",
+          "planned_distance_miles": 8
+        }
+      ]
+    }
+  ]
+}

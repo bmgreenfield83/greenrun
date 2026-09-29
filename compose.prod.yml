@@ -1,0 +1,12 @@
+# Greenrun on the Beelink: one container, reachable only from the machine itself (127.0.0.1).
+# Tailscale Serve publishes it privately over HTTPS. The database is MongoDB Atlas; secrets live in .env only.
+# See docs/deployment.md.
+name: greenrun
+services:
+  app:
+    build: .
+    image: greenrun-app
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:${GREENRUN_PORT:-8440}:8000"
