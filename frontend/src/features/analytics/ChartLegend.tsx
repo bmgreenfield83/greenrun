@@ -34,7 +34,9 @@ function Mark({ color, kind = "bar" }: Pick<LegendItem, "color" | "kind">) {
             ? `1.5px dashed ${color}`
             : kind === "ring"
               ? `1.5px solid ${color}`
-              : "none",
+              : kind === "bar"
+                ? "1px solid rgba(27, 33, 28, 0.35)"
+                : "none",
         backgroundImage:
           kind === "hatched"
             ? `repeating-linear-gradient(45deg, ${color}55 0 2px, transparent 2px 5px)`

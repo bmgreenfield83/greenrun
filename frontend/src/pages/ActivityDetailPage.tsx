@@ -34,6 +34,16 @@ import {
 } from "../api/analytics";
 import { PageHeader } from "../components/common/PageHeader";
 import { SectionTitle } from "../components/common/SectionTitle";
+import { StatValue } from "../components/common/StatValue";
+
+// Headline numbers shown in the pixel stat font.
+const keyStats = new Set([
+  "Distance",
+  "Moving time",
+  "Elapsed time",
+  "Average pace",
+  "Average speed",
+]);
 import { ActivityCharts } from "../features/activities/ActivityCharts";
 import { clearActivityListState } from "../features/activities/activityListState";
 import {
@@ -281,12 +291,7 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
         }
       />
       {error && <Alert severity="error">{error}</Alert>}
-      <Card
-        variant="outlined"
-        sx={{
-          background: "linear-gradient(145deg, #fff 55%, rgba(23,74,91,.055))",
-        }}
-      >
+      <Card>
         <CardContent>
           <Grid container rowSpacing={2.5} columnSpacing={2}>
             {stats.map(([label, display]) => (
@@ -312,6 +317,8 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
                       {plannedSession.scheduled_date}
                     </Typography>
                   </Stack>
+                ) : keyStats.has(label) ? (
+                  <StatValue value={display} size="sm" />
                 ) : (
                   <Typography
                     fontWeight={700}

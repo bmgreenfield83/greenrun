@@ -153,8 +153,8 @@ export function GoalTargetEditor({
         p: 2,
         border: 1,
         borderColor: "divider",
-        borderRadius: 3,
-        bgcolor: "#f7faf9",
+        borderRadius: "6px",
+        bgcolor: "#f5eddb",
       }}
     >
       <Stack spacing={2}>

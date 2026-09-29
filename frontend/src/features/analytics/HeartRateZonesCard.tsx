@@ -2,7 +2,7 @@ import { Box, Grid, Stack, Tooltip, Typography } from "@mui/material";
 
 import type { HeartRateZoneAnalytics, ZoneWeek } from "../../api/analytics";
 import { AnalyticsCard } from "./AnalyticsCard";
-import { zoneColors } from "./chartTheme";
+import { zoneColors, zoneSwatchBorder } from "./chartTheme";
 import { categoryLabel, hoursMinutes } from "./format";
 import { HeartRateSettingsMissing } from "./HeartRateSettingsMissing";
 import { ZoneTable } from "./ZoneTable";
@@ -31,7 +31,14 @@ function DistributionBar({
     <Stack spacing={0.75}>
       <Stack
         direction="row"
-        sx={{ height: 22, borderRadius: 1.5, overflow: "hidden", gap: "2px" }}
+        sx={{
+          height: 24,
+          borderRadius: "3px",
+          overflow: "hidden",
+          gap: "2px",
+          border: "2px solid #1f3d2c",
+          bgcolor: "#1f3d2c",
+        }}
         role="img"
         aria-label={seconds
           .map(
@@ -63,10 +70,12 @@ function DistributionBar({
               component="span"
               sx={{
                 display: "inline-block",
-                width: 8,
-                height: 8,
+                width: 10,
+                height: 10,
                 borderRadius: "2px",
                 bgcolor: zoneColors[index],
+                border: zoneSwatchBorder,
+                verticalAlign: "-1px",
                 mr: 0.5,
               }}
             />

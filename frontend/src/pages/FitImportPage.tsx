@@ -166,7 +166,7 @@ export function FitImportPage() {
               border: "2px dashed",
               borderColor: dragging ? "primary.main" : "divider",
               bgcolor: dragging ? "action.hover" : "transparent",
-              borderRadius: 2,
+              borderRadius: "6px",
               p: 4,
               textAlign: "center",
               transition: "150ms ease",

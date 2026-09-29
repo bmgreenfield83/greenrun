@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 
 import type { HeartRateZoneBoundary } from "../../api/analytics";
-import { zoneColors } from "./chartTheme";
+import { zoneColors, zoneSwatchBorder } from "./chartTheme";
 
 const zoneNames = ["Recovery", "Aerobic", "Tempo", "Threshold", "Maximum"];
 
@@ -20,7 +20,7 @@ export function ZoneTable({ zones }: { zones: HeartRateZoneBoundary[] }) {
     <TableContainer
       component={Paper}
       variant="outlined"
-      sx={{ borderRadius: 3 }}
+      sx={{ borderRadius: "6px" }}
     >
       <Table size="small" aria-label="Heart-rate zones">
         <TableHead>
@@ -38,10 +38,12 @@ export function ZoneTable({ zones }: { zones: HeartRateZoneBoundary[] }) {
                   component="span"
                   sx={{
                     display: "inline-block",
-                    width: 10,
-                    height: 10,
-                    borderRadius: "3px",
+                    width: 14,
+                    height: 14,
+                    borderRadius: "2px",
                     bgcolor: zoneColors[index],
+                    border: zoneSwatchBorder,
+                    verticalAlign: "-2px",
                     mr: 1,
                   }}
                 />

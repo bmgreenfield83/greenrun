@@ -8,6 +8,7 @@ import {
 } from "@mui/material";
 import type { ReactNode } from "react";
 
+import { colors, pixelFont } from "../../app/tokens";
 import { SectionTitle } from "../../components/common/SectionTitle";
 
 type AnalyticsCardProps = {
@@ -32,7 +33,10 @@ export function AnalyticsCard({
     <Card variant="outlined" component="section" aria-label={title}>
       <CardContent>
         <Stack spacing={2}>
-          <Stack spacing={0.5}>
+          <Stack
+            spacing={0.5}
+            sx={{ pb: 1.5, borderBottom: `2px dashed ${colors.rule}` }}
+          >
             <SectionTitle action={action}>{title}</SectionTitle>
             {description && (
               <Typography variant="body2" color="text.secondary">
@@ -74,11 +78,11 @@ export function Figure({
       </Typography>
       <Typography
         component="p"
-        color="primary.dark"
+        color="primary.main"
         sx={{
-          fontWeight: 750,
-          fontSize: { xs: "1.2rem", sm: "1.4rem" },
-          lineHeight: 1.2,
+          fontFamily: pixelFont,
+          fontSize: { xs: "1.15rem", sm: "1.35rem" },
+          lineHeight: 1.25,
           fontVariantNumeric: "tabular-nums",
         }}
       >

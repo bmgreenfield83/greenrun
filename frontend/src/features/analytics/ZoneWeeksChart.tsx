@@ -11,7 +11,13 @@ import {
 
 import type { ZoneWeek } from "../../api/analytics";
 import { ChartLegend } from "./ChartLegend";
-import { axisTick, gridStroke, tooltipStyle, zoneColors } from "./chartTheme";
+import {
+  axisTick,
+  cursorFill,
+  gridStroke,
+  tooltipStyle,
+  zoneColors,
+} from "./chartTheme";
 import { hoursMinutes, shortDate } from "./format";
 import { niceTicks } from "./format";
 
@@ -88,7 +94,7 @@ export function ZoneWeeksChart({
             }
           />
           <Tooltip
-            cursor={{ fill: "rgba(23,74,91,.06)" }}
+            cursor={{ fill: cursorFill }}
             content={({ active, payload }) => {
               const row = payload?.[0]?.payload as Row | undefined;
               if (!active || !row) return null;
@@ -131,7 +137,7 @@ export function ZoneWeeksChart({
               name={`Z${index + 1}`}
               stackId="zones"
               fill={color}
-              stroke="#fff"
+              stroke="#fffaf0"
               strokeWidth={1}
               maxBarSize={36}
               isAnimationActive={false}

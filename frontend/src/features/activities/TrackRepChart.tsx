@@ -16,6 +16,7 @@ import { ChartLegend } from "../analytics/ChartLegend";
 import {
   axisTick,
   gridStroke,
+  inkMuted,
   seriesColors,
   tooltipStyle,
 } from "../analytics/chartTheme";
@@ -45,7 +46,7 @@ function LapDot({
         cx={cx}
         cy={cy}
         r={4}
-        fill="#fff"
+        fill="#fffaf0"
         stroke={seriesColors.muted}
         strokeWidth={1.5}
       />
@@ -57,10 +58,10 @@ function LapDot({
       r={6}
       fill={
         payload.at_or_under_goal_pace
-          ? seriesColors.success
+          ? seriesColors.highlight
           : seriesColors.primary
       }
-      stroke="#fff"
+      stroke="#fffaf0"
       strokeWidth={2}
     />
   );
@@ -129,7 +130,7 @@ export function TrackRepChart({
                     position: "insideBottom",
                     offset: -8,
                     fontSize: 12,
-                    fill: "#56666d",
+                    fill: inkMuted,
                   }}
                 />
                 <YAxis
@@ -201,7 +202,7 @@ export function TrackRepChart({
                 { label: "Rep", color: seriesColors.primary, kind: "dot" },
                 {
                   label: "Rep at or under goal pace",
-                  color: seriesColors.success,
+                  color: seriesColors.highlight,
                   kind: "dot",
                 },
                 {

@@ -25,31 +25,44 @@ describe("application shell", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "Greenrun" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("navigation", { name: "Primary navigation" }),
-    ).toBeInTheDocument();
-    expect(
       screen.getByRole("link", { name: "Go to dashboard" }),
     ).toHaveAttribute("href", "/");
-    fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
-    const mobileNavigation = screen.getByRole("navigation", {
+    expect(screen.getByTestId("scene-background")).toHaveAttribute(
+      "data-scene",
+      "trail",
+    );
+
+    // Desktop header lists every destination; the current page is marked.
+    const primary = screen.getByRole("navigation", {
+      name: "Primary navigation",
+    });
+    expect(within(primary).getAllByRole("link")).toHaveLength(8);
+    expect(
+      within(primary).getByRole("link", { name: "Dashboard" }),
+    ).toHaveAttribute("aria-current", "page");
+
+    // Phone tab bar: five main destinations plus a More menu for the rest.
+    const mobile = screen.getByRole("navigation", {
       name: "Mobile navigation",
     });
-    expect(mobileNavigation).toBeInTheDocument();
     expect(
-      within(mobileNavigation).getByRole("link", {
-        name: "Settings",
-      }),
+      within(mobile)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Dashboard", "Calendar", "Activities", "Analytics", "Plans"]);
+    const more = within(mobile).getByRole("button", { name: "More" });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(more);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+    const menu = screen.getByRole("menu");
+    expect(
+      within(menu).getByRole("menuitem", { name: "Settings" }),
     ).toHaveAttribute("href", "/settings");
-    fireEvent.click(screen.getByRole("button", { name: "Close navigation" }));
     expect(
-      screen.getByRole("button", {
-        name: "Open navigation",
-        hidden: true,
-      }),
-    ).toHaveAttribute("aria-expanded", "false");
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Import", "Exports", "Settings"]);
     expect(await screen.findByText("Connected")).toBeInTheDocument();
   });
 });

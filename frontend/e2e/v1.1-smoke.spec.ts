@@ -112,27 +112,34 @@ test.beforeEach(async ({ page }) => {
 
 test("primary navigation reaches the major workflows", async ({ page }) => {
   await page.goto("/");
-  await expect(
-    page.getByRole("heading", { name: "Your training, clearly tracked." }),
-  ).toBeVisible();
+  await expect(page.getByRole("region", { name: "Today" })).toBeVisible();
   for (const [label, heading] of [
     ["Activities", "Activities"],
     ["Import", "Import Garmin FIT"],
     ["Analytics", "Analytics"],
     ["Plans", "Training plans"],
   ]) {
-    const menuButton = page.getByRole("button", { name: "Open navigation" });
-    if (await menuButton.isVisible()) {
-      await menuButton.click();
-      await page
-        .getByRole("navigation", { name: "Mobile navigation" })
-        .getByRole("link", { name: label, exact: true })
-        .click();
+    const mobile = page.getByRole("navigation", { name: "Mobile navigation" });
+    const header = page.getByRole("navigation", { name: "Primary navigation" });
+    if (await mobile.isVisible()) {
+      const tab = mobile.getByRole("link", { name: label, exact: true });
+      if (await tab.count()) await tab.click();
+      else {
+        await mobile.getByRole("button", { name: "More" }).click();
+        await page.getByRole("menuitem", { name: label, exact: true }).click();
+      }
+    } else if (await header.isVisible()) {
+      await header.getByRole("link", { name: label, exact: true }).click();
     } else {
-      await page
-        .getByRole("navigation", { name: "Primary navigation" })
-        .getByRole("link", { name: label, exact: true })
-        .click();
+      const section = page.getByRole("navigation", {
+        name: "Section navigation",
+      });
+      const link = section.getByRole("link", { name: label, exact: true });
+      if (await link.count()) await link.click();
+      else {
+        await section.getByRole("button", { name: "More" }).click();
+        await page.getByRole("menuitem", { name: label, exact: true }).click();
+      }
     }
     await expect(
       page.getByRole("heading", { name: heading, exact: true }),

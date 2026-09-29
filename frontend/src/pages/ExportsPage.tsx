@@ -51,28 +51,30 @@ export function ExportsPage() {
         description="Analysis-oriented JSON with exact laps, contextual data, and scope-appropriate sample smoothing. GPS data is never included."
       />
       {error && <Alert severity="error">{error}</Alert>}
-      <div>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={includeAllActivities}
-              onChange={(event) =>
-                setIncludeAllActivities(event.target.checked)
-              }
-            />
-          }
-          label="Include walks, bike rides, and other activity types"
-        />
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ pl: { xs: 0, sm: 4 } }}
-        >
-          Exports include runs only by default. This applies to both exports
-          below.
-        </Typography>
-      </div>
-      <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+      <Card>
+        <CardContent sx={{ py: { xs: 1.5, sm: 2 } }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={includeAllActivities}
+                onChange={(event) =>
+                  setIncludeAllActivities(event.target.checked)
+                }
+              />
+            }
+            label="Include walks, bike rides, and other activity types"
+          />
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ pl: { xs: 0, sm: 4 } }}
+          >
+            Exports include runs only by default. This applies to both exports
+            below.
+          </Typography>
+        </CardContent>
+      </Card>
+      <Grid container spacing={{ xs: 2, sm: 3 }}>
         <Grid size={{ xs: 12, md: 6 }}>
           <Card variant="outlined" sx={{ height: "100%" }}>
             <CardContent>

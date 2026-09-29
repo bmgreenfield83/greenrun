@@ -21,6 +21,7 @@ import {
 import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 
+import { colors } from "../app/tokens";
 import { PageHeader } from "../components/common/PageHeader";
 import {
   attachActivity,
@@ -32,16 +33,19 @@ import {
 } from "../api/calendar";
 import { DayDetailDrawer } from "../features/calendar/DayDetailDrawer";
 
+// Planned sessions are hollow (panel fill, sport-colored dashed border); completed work is
+// solid forest green; skipped is brick red.
 const sportColors: Record<string, string> = {
-  run: "#1976d2",
-  walk: "#6d4c41",
-  bike: "#7b1fa2",
-  swim: "#00838f",
-  strength: "#ef6c00",
-  hike: "#2e7d32",
-  other: "#546e7a",
+  run: colors.forest,
+  walk: "#6b4f2a",
+  bike: "#6a3f8f",
+  swim: "#1f6f84",
+  strength: "#a8501a",
+  hike: "#4d6b1f",
+  other: "#4f574c",
 };
-const skippedColor = "rgb(159, 11, 11)";
+const completedColor = "#2f6b4a";
+const skippedColor = "#9f2a24";
 
 function localIso(date: Date): string {
   const offset = date.getTimezoneOffset() * 60000;
@@ -157,15 +161,16 @@ export function CalendarPage() {
             event.status === "skipped"
               ? skippedColor
               : event.activity_id
-                ? "#2f7d5b"
-                : (sportColors[event.sport] ?? sportColors.other),
+                ? completedColor
+                : colors.panel,
           borderColor:
-            event.status === "skipped"
-              ? "#651313"
-              : event.activity_id
-                ? "#245f46"
-                : undefined,
-          textColor: "#fff",
+            event.status === "skipped" || event.activity_id
+              ? colors.shadow
+              : (sportColors[event.sport] ?? sportColors.other),
+          textColor:
+            event.status === "skipped" || event.activity_id
+              ? colors.cream
+              : colors.ink,
           classNames: [`status-${event.status}`, `kind-${event.kind}`],
           extendedProps: { source: event },
         })),
@@ -213,71 +218,86 @@ export function CalendarPage() {
         description="Planned sessions stay on their historical dates while activities stay on their actual dates."
       />
       {error && !selectedDate && <Alert severity="error">{error}</Alert>}
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        alignItems={{ sm: "center" }}
-        gap={1.5}
-      >
-        <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
-          {[
-            ["#1976d2", "Planned"],
-            ["#2f7d5b", "Completed"],
-            [skippedColor, "Skipped"],
-          ].map(([color, label]) => (
-            <Stack
-              direction="row"
-              spacing={0.6}
-              alignItems="center"
-              key={label}
-            >
-              <Box
-                sx={{
-                  width: 11,
-                  height: 11,
-                  borderRadius: 0.75,
-                  bgcolor: color,
-                }}
-              />
-              <Typography variant="body2" color="text.secondary">
-                {label}
-              </Typography>
-            </Stack>
-          ))}
-        </Stack>
-        <Stack direction="row" spacing={1}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={showPlanned}
-                inputProps={{ "aria-label": "Planned" }}
-                onChange={(event) => setShowPlanned(event.target.checked)}
-              />
-            }
-            label="Planned"
-          />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={showCompleted}
-                inputProps={{ "aria-label": "Completed" }}
-                onChange={(event) => setShowCompleted(event.target.checked)}
-              />
-            }
-            label="Completed"
-          />
-        </Stack>
-      </Stack>
-      <Card variant="outlined" sx={{ bgcolor: "rgba(255,255,255,.92)" }}>
+      <Card>
         <CardContent
           sx={{
-            p: { xs: 1, sm: 3 },
-            "&:last-child": { pb: { xs: 1, sm: 3 } },
-            "& .status-skipped": { opacity: 0.75 },
-            "& .current-week-day": { bgcolor: "rgba(23,74,91,.035)" },
-            "& .fc-day-today": { bgcolor: "rgba(23,74,91,.1)" },
+            p: { xs: 1, sm: 2.5 },
+            "&:last-child": { pb: { xs: 1, sm: 2.5 } },
+            "& .status-skipped": { opacity: 0.8 },
+            "& .status-skipped .calendar-event__title": {
+              textDecoration: "line-through",
+            },
+            "& .current-week-day": { bgcolor: "rgba(31, 61, 44, 0.04)" },
+            "& .fc-day-today": { bgcolor: "rgba(224, 122, 47, 0.13)" },
           }}
         >
+          <Box
+            sx={{
+              px: { xs: 1, sm: 0 },
+              pb: 1.5,
+              mb: { xs: 1, sm: 2 },
+              borderBottom: `2px dashed ${colors.rule}`,
+            }}
+          >
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ sm: "center" }}
+              gap={1.5}
+            >
+              <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+                {[
+                  [colors.panel, "Planned", sportColors.run],
+                  [completedColor, "Completed", colors.shadow],
+                  [skippedColor, "Skipped", colors.shadow],
+                ].map(([color, label, border]) => (
+                  <Stack
+                    direction="row"
+                    spacing={0.6}
+                    alignItems="center"
+                    key={label}
+                  >
+                    <Box
+                      sx={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: "2px",
+                        bgcolor: color,
+                        border: `2px ${label === "Planned" ? "dashed" : "solid"} ${border}`,
+                      }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      {label}
+                    </Typography>
+                  </Stack>
+                ))}
+              </Stack>
+              <Stack direction="row" spacing={1}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={showPlanned}
+                      inputProps={{ "aria-label": "Planned" }}
+                      onChange={(event) => setShowPlanned(event.target.checked)}
+                    />
+                  }
+                  label="Planned"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={showCompleted}
+                      inputProps={{ "aria-label": "Completed" }}
+                      onChange={(event) =>
+                        setShowCompleted(event.target.checked)
+                      }
+                    />
+                  }
+                  label="Completed"
+                />
+              </Stack>
+            </Stack>
+          </Box>
           <FullCalendar
             plugins={[dayGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"

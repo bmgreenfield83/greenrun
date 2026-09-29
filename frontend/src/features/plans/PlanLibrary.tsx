@@ -21,6 +21,7 @@ import {
   type PlannedSession,
   type TrainingPlan,
 } from "../../api/plans";
+import { SectionPlate } from "../../components/common/SectionPlate";
 import { exportPlan } from "../../api/exports";
 import { localDateLabel, metersToMiles } from "../activities/format";
 import { GoalTargetEditor } from "./GoalTargetEditor";
@@ -103,14 +104,9 @@ export function PlanLibrary({ refreshKey }: { refreshKey: number }) {
   return (
     <Stack spacing={3}>
       {error && <Alert severity="error">{error}</Alert>}
-      <Typography variant="h5" component="h2">
-        Your plans
-      </Typography>
+      <SectionPlate title="Your plans" />
       {active ? (
-        <Card
-          variant="outlined"
-          sx={{ borderLeft: 5, borderLeftColor: "success.main" }}
-        >
+        <Card>
           <CardContent>
             <Stack spacing={2}>
               <Stack
@@ -223,10 +219,10 @@ export function PlanLibrary({ refreshKey }: { refreshKey: number }) {
                                 sx={{
                                   p: 1.25,
                                   height: "100%",
-                                  bgcolor: "#f4f8f7",
+                                  bgcolor: "background.paper",
                                   border: 1,
                                   borderColor: "divider",
-                                  borderRadius: 2,
+                                  borderRadius: "6px",
                                 }}
                               >
                                 <div>
@@ -284,9 +280,7 @@ export function PlanLibrary({ refreshKey }: { refreshKey: number }) {
 
       {historical.length > 0 && (
         <Stack spacing={1.5}>
-          <Typography variant="h6" component="h3">
-            Archived and previous plans
-          </Typography>
+          <SectionPlate title="Archived and previous plans" />
           {historical.map((plan) => (
             <Card variant="outlined" key={plan.id}>
               <CardContent>

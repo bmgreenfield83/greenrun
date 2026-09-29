@@ -1,4 +1,6 @@
 import {
+  Card,
+  CardContent,
   Paper,
   Stack,
   Table,
@@ -45,72 +47,78 @@ export function LapTable({
     { label: "Trigger", numeric: false },
   ];
   return (
-    <Stack spacing={1.5}>
-      <SectionTitle>Laps</SectionTitle>
-      {!laps.length ? (
-        <Typography color="text.secondary">No laps were recorded.</Typography>
-      ) : (
-        <TableContainer
-          component={Paper}
-          variant="outlined"
-          tabIndex={0}
-          aria-label="Lap table"
-          sx={{ borderRadius: 3.5 }}
-        >
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                {columns.map(({ label, numeric }) => (
-                  <TableCell key={label} align={numeric ? "right" : "left"}>
-                    {label}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {laps.map((lap) => (
-                <TableRow key={lap.index}>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>
-                    {lap.index}
-                  </TableCell>
-                  <TableCell align="right">
-                    {metersToMiles(lap.distance_meters)}
-                  </TableCell>
-                  <TableCell align="right">
-                    {duration(lap.elapsed_time_seconds)}
-                  </TableCell>
-                  {supportsRate && (
-                    <TableCell align="right">
-                      {usesPace
-                        ? pace(lap.average_speed_mps)
-                        : speed(lap.average_speed_mps)}
-                    </TableCell>
-                  )}
-                  <TableCell align="right">
-                    {lap.average_heart_rate ?? "—"}
-                  </TableCell>
-                  <TableCell align="right">
-                    {lap.maximum_heart_rate ?? "—"}
-                  </TableCell>
-                  {sport !== "strength" && (
-                    <TableCell align="right">
-                      {lap.average_cadence_spm?.toFixed(0) ?? "—"}
-                    </TableCell>
-                  )}
-                  <TableCell align="right">
-                    {lap.elevation_gain_meters === null
-                      ? "—"
-                      : `${(lap.elevation_gain_meters * 3.28084).toFixed(0)} ft`}
-                  </TableCell>
-                  <TableCell sx={{ color: "text.secondary" }}>
-                    {lap.lap_trigger?.replaceAll("_", " ") ?? "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-    </Stack>
+    <Card component="section" aria-label="Laps">
+      <CardContent>
+        <Stack spacing={1.5}>
+          <SectionTitle>Laps</SectionTitle>
+          {!laps.length ? (
+            <Typography color="text.secondary">
+              No laps were recorded.
+            </Typography>
+          ) : (
+            <TableContainer
+              component={Paper}
+              variant="outlined"
+              tabIndex={0}
+              aria-label="Lap table"
+              sx={{ borderRadius: "6px" }}
+            >
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    {columns.map(({ label, numeric }) => (
+                      <TableCell key={label} align={numeric ? "right" : "left"}>
+                        {label}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {laps.map((lap) => (
+                    <TableRow key={lap.index}>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>
+                        {lap.index}
+                      </TableCell>
+                      <TableCell align="right">
+                        {metersToMiles(lap.distance_meters)}
+                      </TableCell>
+                      <TableCell align="right">
+                        {duration(lap.elapsed_time_seconds)}
+                      </TableCell>
+                      {supportsRate && (
+                        <TableCell align="right">
+                          {usesPace
+                            ? pace(lap.average_speed_mps)
+                            : speed(lap.average_speed_mps)}
+                        </TableCell>
+                      )}
+                      <TableCell align="right">
+                        {lap.average_heart_rate ?? "—"}
+                      </TableCell>
+                      <TableCell align="right">
+                        {lap.maximum_heart_rate ?? "—"}
+                      </TableCell>
+                      {sport !== "strength" && (
+                        <TableCell align="right">
+                          {lap.average_cadence_spm?.toFixed(0) ?? "—"}
+                        </TableCell>
+                      )}
+                      <TableCell align="right">
+                        {lap.elevation_gain_meters === null
+                          ? "—"
+                          : `${(lap.elevation_gain_meters * 3.28084).toFixed(0)} ft`}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.secondary" }}>
+                        {lap.lap_trigger?.replaceAll("_", " ") ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }

@@ -194,7 +194,7 @@ export function DayDetailDrawer(props: Props) {
                             <Box
                               sx={{
                                 p: 2,
-                                borderRadius: 2.5,
+                                borderRadius: "6px",
                                 bgcolor: "success.light",
                                 border: 1,
                                 borderColor: "rgba(47,125,91,.18)",

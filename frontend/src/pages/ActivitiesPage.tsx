@@ -35,6 +35,17 @@ import {
 const PAGE_SIZE = 25;
 const sports = ["run", "walk", "bike", "swim", "strength", "hike", "other"];
 
+// Small opaque label for status text that sits between panels.
+const statusPillSx = {
+  alignSelf: "flex-start",
+  px: 1.25,
+  py: 0.25,
+  bgcolor: "background.paper",
+  border: 1.5,
+  borderColor: "divider",
+  borderRadius: "4px",
+} as const;
+
 export function ActivitiesPage() {
   const initialState = useRef(getActivityListState()).current;
   const [activities, setActivities] = useState<Activity[]>(
@@ -183,7 +194,12 @@ export function ActivitiesPage() {
 
       {error && <Alert severity="error">{error}</Alert>}
       {!loading && !error && activities.length > 0 && (
-        <Typography variant="body2" color="text.secondary" aria-live="polite">
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          aria-live="polite"
+          sx={statusPillSx}
+        >
           Showing {activities.length} of {total} activities
         </Typography>
       )}
@@ -202,7 +218,7 @@ export function ActivitiesPage() {
               display: "block",
               px: { xs: 2, sm: 3 },
               py: 0.75,
-              bgcolor: "#f7faf9",
+              bgcolor: "#f5eddb",
               borderBottom: 1,
               borderColor: "divider",
             }}
@@ -297,7 +313,12 @@ export function ActivitiesPage() {
       )}
       {loading && (
         <Stack spacing={1.5} aria-busy="true">
-          <Typography variant="body2" color="text.secondary" role="status">
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            role="status"
+            sx={statusPillSx}
+          >
             {activities.length
               ? "Loading more activities..."
               : "Loading activities..."}

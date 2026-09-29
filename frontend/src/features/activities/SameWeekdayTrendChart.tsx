@@ -23,6 +23,7 @@ import {
 } from "recharts";
 
 import type { SameWeekdayRun } from "../../api/analytics";
+import { axisTick, gridStroke, seriesColors } from "../analytics/chartTheme";
 import { duration } from "./format";
 
 type Metric = "pace" | "heartRate" | "distance";
@@ -48,7 +49,7 @@ function TrendTooltip({ point }: { point: TrendDatum }) {
         bgcolor: "background.paper",
         border: 1,
         borderColor: "divider",
-        borderRadius: 1.5,
+        borderRadius: "4px",
         p: 1.5,
       }}
     >
@@ -133,7 +134,7 @@ export function SameWeekdayTrendChart({
             : `${value}`
       }
       width={metric === "pace" ? 62 : 54}
-      tick={{ fontSize: 12, fill: "#56666d" }}
+      tick={axisTick}
       tickLine={false}
     />
   );
@@ -145,10 +146,10 @@ export function SameWeekdayTrendChart({
             key={point.activity_id}
             fill={
               point.is_current
-                ? "#2f7d5b"
+                ? seriesColors.blue
                 : id === "left"
-                  ? "#174a5b"
-                  : "#d96b4f"
+                  ? seriesColors.primary
+                  : seriesColors.secondary
             }
           />
         ))}
@@ -159,7 +160,7 @@ export function SameWeekdayTrendChart({
         type="monotone"
         dataKey={metric}
         name={labels[metric]}
-        stroke={id === "left" ? "#174a5b" : "#d96b4f"}
+        stroke={id === "left" ? seriesColors.primary : seriesColors.secondary}
         strokeWidth={2.5}
         connectNulls={false}
         dot={(props) => {
@@ -169,8 +170,8 @@ export function SameWeekdayTrendChart({
               cx={props.cx}
               cy={props.cy}
               r={point?.is_current ? 6 : 4}
-              fill={point?.is_current ? "#2f7d5b" : props.stroke}
-              stroke="#fff"
+              fill={point?.is_current ? seriesColors.blue : props.stroke}
+              stroke="#fffaf0"
               strokeWidth={2}
             />
           );
@@ -272,14 +273,10 @@ export function SameWeekdayTrendChart({
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="#e4ebe9"
+                  stroke={gridStroke}
                   vertical={false}
                 />
-                <XAxis
-                  dataKey="dateLabel"
-                  tick={{ fontSize: 12, fill: "#56666d" }}
-                  tickLine={false}
-                />
+                <XAxis dataKey="dateLabel" tick={axisTick} tickLine={false} />
                 {axis(primary, "left")}
                 {secondary !== "none" && axis(secondary, "right")}
                 <Tooltip

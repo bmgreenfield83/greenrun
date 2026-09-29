@@ -2,6 +2,8 @@ import { ButtonBase, Stack, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 import { Link } from "wouter";
 
+import { colors } from "../../app/tokens";
+
 type LinkRowProps = {
   href: string;
   primary: ReactNode;
@@ -31,10 +33,11 @@ export function LinkRow({ href, primary, secondary, trailing }: LinkRowProps) {
         alignItems: "center",
         flexWrap: "wrap",
         textAlign: "left",
-        borderRadius: 2.5,
+        borderRadius: "4px",
         color: "text.primary",
         transition: "background-color 120ms ease",
-        "&:hover": { bgcolor: "primary.light" },
+        "&:hover": { bgcolor: colors.parchment },
+        "& + &": { borderTop: `1px dashed ${colors.rule}` },
       }}
     >
       <Stack sx={{ minWidth: 0, flex: "1 1 12rem" }}>

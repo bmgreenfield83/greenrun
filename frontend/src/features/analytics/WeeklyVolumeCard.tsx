@@ -15,7 +15,13 @@ import {
 import type { WeeklyVolumeWeek } from "../../api/analytics";
 import { AnalyticsCard } from "./AnalyticsCard";
 import { ChartLegend } from "./ChartLegend";
-import { axisTick, gridStroke, seriesColors, tooltipStyle } from "./chartTheme";
+import {
+  axisTick,
+  cursorFill,
+  gridStroke,
+  seriesColors,
+  tooltipStyle,
+} from "./chartTheme";
 import { formatMiles, shortDate } from "./format";
 import { niceTicks } from "./format";
 
@@ -125,7 +131,7 @@ export function WeeklyVolumeCard({
               allowDecimals={false}
             />
             <Tooltip
-              cursor={{ fill: "rgba(23,74,91,.06)" }}
+              cursor={{ fill: cursorFill }}
               content={({ active, payload }) => {
                 const week = payload?.[0]?.payload as
                   WeeklyVolumeWeek | undefined;

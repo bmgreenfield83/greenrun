@@ -139,10 +139,10 @@ export function HeartRateResponseChart({
               angle: -90,
               position: "insideLeft",
               offset: 12,
-              style: { fontSize: 12, fill: "#56666d" },
+              style: axisTick,
             }}
           />
-          <ReferenceLine y={0} stroke="#b8c4c2" />
+          <ReferenceLine y={0} stroke="#b9ad8e" />
           <Tooltip
             cursor={{ strokeDasharray: "3 3" }}
             content={({ active, payload }) => {

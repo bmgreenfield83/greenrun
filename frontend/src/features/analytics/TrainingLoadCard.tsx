@@ -13,12 +13,18 @@ import {
 import type {
   HeartRateZoneAnalytics,
   LoadBand,
-  TrainingLoad,
   TrainingLoadDay,
 } from "../../api/analytics";
 import { AnalyticsCard, Figure } from "./AnalyticsCard";
-import { axisTick, gridStroke, seriesColors, tooltipStyle } from "./chartTheme";
+import {
+  axisTick,
+  cursorFill,
+  gridStroke,
+  seriesColors,
+  tooltipStyle,
+} from "./chartTheme";
 import { HeartRateSettingsMissing } from "./HeartRateSettingsMissing";
+import { LoadRatioScale } from "./LoadRatioScale";
 import { shortDate } from "./format";
 import { niceTicks } from "./format";
 
@@ -38,83 +44,6 @@ const bandChipColor: Record<
   elevated: "warning",
   spike: "error",
 };
-
-/** Horizontal band scale (0–2.0) with a marker at the current ratio. */
-function RatioScale({ load }: { load: TrainingLoad }) {
-  const max = 2;
-  const ratio = load.acute_chronic_ratio;
-  const colors: Record<LoadBand, string> = {
-    low: "#d6e4e6",
-    typical: "#cfe7da",
-    elevated: "#fbe3c1",
-    spike: "#f6cfc9",
-  };
-  return (
-    <Box sx={{ position: "relative", pt: 2.5 }} aria-hidden>
-      <Stack
-        direction="row"
-        sx={{ height: 10, borderRadius: 999, overflow: "hidden" }}
-      >
-        {load.bands.map((band) => {
-          const lower = band.lower ?? 0;
-          const upper = Math.min(band.upper ?? max, max);
-          return (
-            <Box
-              key={band.label}
-              sx={{
-                width: `${((upper - lower) / max) * 100}%`,
-                bgcolor: colors[band.label],
-              }}
-            />
-          );
-        })}
-      </Stack>
-      <Stack direction="row" sx={{ mt: 0.5, position: "relative", height: 16 }}>
-        {load.bands
-          .filter((band) => band.lower != null)
-          .map((band) => (
-            <Typography
-              key={band.label}
-              variant="caption"
-              color="text.secondary"
-              sx={{
-                position: "absolute",
-                left: `${(band.lower! / max) * 100}%`,
-                transform: "translateX(-50%)",
-                lineHeight: 1,
-              }}
-            >
-              {band.lower!.toFixed(1)}
-            </Typography>
-          ))}
-      </Stack>
-      {ratio != null && (
-        <Box
-          sx={{
-            position: "absolute",
-            top: 0,
-            left: `${(Math.min(ratio, max) / max) * 100}%`,
-            transform: "translateX(-50%)",
-            textAlign: "center",
-          }}
-        >
-          <Typography variant="caption" fontWeight={800} sx={{ lineHeight: 1 }}>
-            {ratio.toFixed(2)}
-          </Typography>
-          <Box
-            sx={{
-              width: 3,
-              height: 16,
-              bgcolor: "text.primary",
-              mx: "auto",
-              borderRadius: 1,
-            }}
-          />
-        </Box>
-      )}
-    </Box>
-  );
-}
 
 /** Acute vs chronic TRIMP load with the ratio shown as guidance, plus daily TRIMP. */
 export function TrainingLoadCard({
@@ -195,7 +124,7 @@ export function TrainingLoadCard({
                     {band.description}
                   </Typography>
                 )}
-                <RatioScale load={load} />
+                <LoadRatioScale load={load} />
               </Stack>
             </Grid>
           </Grid>
@@ -253,7 +182,7 @@ export function TrainingLoadCard({
                   allowDecimals={false}
                 />
                 <Tooltip
-                  cursor={{ fill: "rgba(23,74,91,.06)" }}
+                  cursor={{ fill: cursorFill }}
                   content={({ active, payload }) => {
                     const day = payload?.[0]?.payload as
                       TrainingLoadDay | undefined;

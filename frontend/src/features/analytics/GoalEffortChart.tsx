@@ -13,7 +13,13 @@ import {
 
 import type { GoalProgress } from "../../api/analytics";
 import { ChartLegend } from "./ChartLegend";
-import { axisTick, gridStroke, seriesColors, tooltipStyle } from "./chartTheme";
+import {
+  axisTick,
+  gridStroke,
+  inkMuted,
+  seriesColors,
+  tooltipStyle,
+} from "./chartTheme";
 import {
   formatPace,
   formatPreciseClock,
@@ -90,14 +96,14 @@ export function GoalEffortChart({ goal }: { goal: GoalProgress }) {
                 <ReferenceArea
                   x1={rows[0].week}
                   x2={lastLeadInWeek}
-                  fill="#56666d"
+                  fill={inkMuted}
                   fillOpacity={0.06}
                   strokeOpacity={0}
                   label={{
                     value: "Before plan",
                     position: "insideTopLeft",
                     fontSize: 11,
-                    fill: "#56666d",
+                    fill: inkMuted,
                   }}
                 />
               )}
@@ -105,14 +111,14 @@ export function GoalEffortChart({ goal }: { goal: GoalProgress }) {
                 <ReferenceArea
                   x1={firstFuture}
                   x2={lastWeek}
-                  fill="#2a78d6"
+                  fill={seriesColors.primary}
                   fillOpacity={0.04}
                   strokeOpacity={0}
                   label={{
                     value: "Ahead",
                     position: "insideTopRight",
                     fontSize: 11,
-                    fill: "#56666d",
+                    fill: inkMuted,
                   }}
                 />
               )}
@@ -196,7 +202,7 @@ export function GoalEffortChart({ goal }: { goal: GoalProgress }) {
                 dot={{
                   r: 4,
                   fill: seriesColors.muted,
-                  stroke: "#fff",
+                  stroke: "#fffaf0",
                   strokeWidth: 2,
                 }}
                 activeDot={{ r: 6 }}
@@ -211,7 +217,7 @@ export function GoalEffortChart({ goal }: { goal: GoalProgress }) {
                 dot={{
                   r: 4.5,
                   fill: seriesColors.primary,
-                  stroke: "#fff",
+                  stroke: "#fffaf0",
                   strokeWidth: 2,
                 }}
                 activeDot={{ r: 6 }}

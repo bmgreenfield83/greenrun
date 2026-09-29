@@ -1,5 +1,7 @@
-import { Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import type { ReactNode } from "react";
+
+import { colors } from "../../app/tokens";
 
 type SectionTitleProps = {
   children: ReactNode;
@@ -18,7 +20,18 @@ export function SectionTitle({ children, icon, action }: SectionTitleProps) {
       gap={1}
     >
       <Stack direction="row" spacing={1} alignItems="center" minWidth={0}>
-        {icon}
+        {icon ?? (
+          <Box
+            aria-hidden
+            sx={{
+              width: 10,
+              height: 10,
+              flexShrink: 0,
+              bgcolor: colors.orange,
+              border: `2px solid ${colors.border}`,
+            }}
+          />
+        )}
         <Typography variant="h5" component="h2">
           {children}
         </Typography>

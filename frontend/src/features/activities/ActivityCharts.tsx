@@ -15,18 +15,15 @@ import {
 
 import type { ActivitySample } from "../../api/activities";
 import type { SecondsRange } from "../analytics/heartRateResponse";
-import { SectionTitle } from "../../components/common/SectionTitle";
+import { SectionPlate } from "../../components/common/SectionPlate";
 import { formatPaceTick, getPaceChartDomain } from "./chartScale";
 
-// Shared axis/grid styling so every activity chart reads the same way.
-const axisTick = { fontSize: 12, fill: "#56666d" };
-const gridStroke = "#e4ebe9";
-const tooltipStyle = {
-  borderRadius: 10,
-  border: "1px solid #dce5e3",
-  boxShadow: "0 8px 24px rgba(20,54,61,.12)",
-  fontSize: 13,
-};
+import {
+  axisTick,
+  gridStroke,
+  seriesColors,
+  tooltipStyle,
+} from "../analytics/chartTheme";
 const formatMinuteTick = (value: number) => `${Math.round(value)}`;
 
 type ActivityChartsProps = {
@@ -67,12 +64,10 @@ export const ActivityCharts = memo(function ActivityCharts({
 
   if (!samples.length)
     return (
-      <Stack spacing={1.5}>
-        <SectionTitle>Charts</SectionTitle>
-        <Typography color="text.secondary">
-          No sample charts are available for this activity.
-        </Typography>
-      </Stack>
+      <SectionPlate
+        title="Charts"
+        description="No sample charts are available for this activity."
+      />
     );
   const usesPace = ["run", "walk", "hike"].includes(sport);
   const supportsRate = sport !== "strength";
@@ -91,21 +86,21 @@ export const ActivityCharts = memo(function ActivityCharts({
               title: "Pace",
               key: "pace",
               unit: "min/mi",
-              color: "#1976d2",
+              color: seriesColors.primary,
               reversed: true,
             }
           : {
               title: "Speed",
               key: "speed",
               unit: "mph",
-              color: "#1976d2",
+              color: seriesColors.primary,
               reversed: false,
             },
         {
           title: sport === "bike" ? "Cadence (RPM)" : "Cadence (SPM)",
           key: "cadence",
           unit: sport === "bike" ? "rpm" : "spm",
-          color: "#7b1fa2",
+          color: seriesColors.blue,
           reversed: false,
         },
       ]
@@ -115,7 +110,7 @@ export const ActivityCharts = memo(function ActivityCharts({
       title: "Heart rate",
       key: "heartRate",
       unit: "bpm",
-      color: "#d32f2f",
+      color: seriesColors.red,
       reversed: false,
     },
     ...rateCharts,
@@ -123,7 +118,7 @@ export const ActivityCharts = memo(function ActivityCharts({
       title: "Elevation",
       key: "elevation",
       unit: "ft",
-      color: "#2e7d32",
+      color: seriesColors.earth,
       reversed: false,
     },
   ];
@@ -137,9 +132,20 @@ export const ActivityCharts = memo(function ActivityCharts({
   );
 
   return (
-    <Stack spacing={2}>
-      <SectionTitle>Charts</SectionTitle>
-      <Grid container spacing={2}>
+    <Stack spacing={{ xs: 2, sm: 3 }}>
+      <SectionPlate
+        title="Charts"
+        description={
+          analysisRanges.length > 0
+            ? `Lightly shaded regions mark the samples used for workload-adjusted heart-rate analysis${
+                analysisRanges.length > 1
+                  ? "; unshaded gaps between them are stops."
+                  : "."
+              }`
+            : undefined
+        }
+      />
+      <Grid container spacing={{ xs: 2, sm: 3 }}>
         {charts.map(({ title, key, unit, color, reversed }) => (
           <Grid size={{ xs: 12, md: 6 }} key={key}>
             <Card variant="outlined">
@@ -198,7 +204,7 @@ export const ActivityCharts = memo(function ActivityCharts({
                         key={range.startSeconds}
                         x1={range.startSeconds / 60}
                         x2={range.endSeconds / 60}
-                        fill="#1976d2"
+                        fill={seriesColors.primary}
                         fillOpacity={0.08}
                         strokeOpacity={0}
                       />
@@ -218,15 +224,6 @@ export const ActivityCharts = memo(function ActivityCharts({
           </Grid>
         ))}
       </Grid>
-      {analysisRanges.length > 0 && (
-        <Typography variant="caption" color="text.secondary">
-          The lightly shaded regions mark the samples used for workload-adjusted
-          heart-rate analysis
-          {analysisRanges.length > 1
-            ? "; unshaded gaps between them are stops."
-            : "."}
-        </Typography>
-      )}
       {supportsRate && scatter.length >= 5 && (
         <Card variant="outlined">
           <CardContent>
@@ -267,7 +264,7 @@ export const ActivityCharts = memo(function ActivityCharts({
                           value: "min/mi",
                           angle: -90,
                           position: "insideLeft",
-                          style: { fontSize: 12, fill: "#56666d" },
+                          style: axisTick,
                         }
                       : undefined
                   }
@@ -281,7 +278,11 @@ export const ActivityCharts = memo(function ActivityCharts({
                       : [value, name]
                   }
                 />
-                <Scatter data={scatter} fill="#1976d2" fillOpacity={0.45} />
+                <Scatter
+                  data={scatter}
+                  fill={seriesColors.primary}
+                  fillOpacity={0.45}
+                />
               </ScatterChart>
             </ResponsiveContainer>
           </CardContent>
