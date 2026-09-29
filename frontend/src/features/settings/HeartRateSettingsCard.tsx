@@ -96,7 +96,7 @@ export function HeartRateSettingsCard() {
 
   const showErrors = touched || changed;
   return (
-    <Card variant="outlined" sx={{ maxWidth: 760, width: "100%", mx: "auto" }}>
+    <Card variant="outlined" sx={{ maxWidth: 760, width: "100%", alignSelf: "center" }}>
       <CardContent>
         <Stack spacing={2}>
           <SectionTitle icon={<FavoriteRounded color="secondary" />}>

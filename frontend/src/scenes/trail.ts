@@ -396,15 +396,16 @@ export const trail: SceneDefinition = {
           w.x += w.speed - speed;
           w.step++;
         }
+        // Passers-by always come toward the owner from the right: walkers, and runners going the other way.
         if (walkers.length < 2 && chance(0.004)) {
           const runner = chance(0.5);
           walkers.push(
             runner
               ? {
                   kind: "runner",
-                  x: -12,
-                  dir: 1,
-                  speed: speed + 0.8,
+                  x: W + 12,
+                  dir: -1,
+                  speed: -0.9,
                   look: Math.floor(Math.random() * 64),
                   step: 0,
                   dog: false,
@@ -494,7 +495,7 @@ export const trail: SceneDefinition = {
               Math.round(w.x),
               feet + 2,
               w.look,
-              1,
+              w.dir,
               w.step >> 1,
               true,
             );

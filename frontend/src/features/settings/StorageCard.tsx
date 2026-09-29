@@ -23,7 +23,7 @@ export function StorageCard() {
   });
 
   return (
-    <Card variant="outlined" sx={{ maxWidth: 760, width: "100%", mx: "auto" }}>
+    <Card variant="outlined" sx={{ maxWidth: 760, width: "100%", alignSelf: "center" }}>
       <CardContent>
         <Stack direction="row" spacing={1} alignItems="center" mb={2}>
           <StorageRounded color="primary" />
