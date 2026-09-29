@@ -1,7 +1,9 @@
 # Analytics revision plan (September 2026)
 
-Approved by the owner on 2026-09-29. This is the working plan for the revision; `docs/analytics.md`
-remains the reference for what is implemented.
+Approved by the owner on 2026-09-29 and implemented the same day (everything except the "Later" section).
+`docs/analytics.md` is the reference for the implemented behavior. Follow-ups decided during implementation:
+HR-response time constants stay capped at 120 s; lap `intensity` labels from the watch decide track reps for
+imports from 2026-09-29 on (no backfill).
 
 ## Owner context
 
