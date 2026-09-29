@@ -1,6 +1,7 @@
 from typing import Any
 
 from app.core.config import Settings
+from app.core.errors import AppError
 from app.db.collections import (
     ACTIVITIES,
     ACTIVITY_SAMPLES,
@@ -11,11 +12,18 @@ from app.db.collections import (
 from app.repositories.settings import SettingsRepository
 from app.schemas.common import utc_now
 from app.schemas.settings import (
+    HEART_RATE_FIELDS,
     AppSettingsResponse,
     AppSettingsUpdate,
     CollectionStorage,
     StorageStatisticsResponse,
+    validate_heart_rate_pair,
 )
+
+
+class InvalidSettingsError(AppError):
+    status_code = 422
+    code = "invalid_settings"
 
 
 class SettingsService:
@@ -43,7 +51,21 @@ class SettingsService:
         )
 
     async def update(self, payload: AppSettingsUpdate) -> AppSettingsResponse:
-        changes = payload.model_dump(exclude_unset=True, exclude_none=True)
+        explicit = payload.model_dump(exclude_unset=True)
+        changes = {
+            key: value
+            for key, value in explicit.items()
+            if value is not None or key in HEART_RATE_FIELDS
+        }
+        if any(key in changes for key in HEART_RATE_FIELDS):
+            current = await self.get()
+            try:
+                validate_heart_rate_pair(
+                    changes.get("max_heart_rate_bpm", current.max_heart_rate_bpm),
+                    changes.get("resting_heart_rate_bpm", current.resting_heart_rate_bpm),
+                )
+            except ValueError as error:
+                raise InvalidSettingsError(str(error)) from error
         changes["updated_at_utc"] = utc_now()
         return AppSettingsResponse.model_validate(await self.repository.update(changes))
 

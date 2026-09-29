@@ -157,6 +157,11 @@ class PlanImportService:
             "description": entry.template.description,
             "primary_goal": entry.template.primary_goal,
             "secondary_goal": entry.template.secondary_goal,
+            "goal_target": (
+                entry.template.goal_target.model_dump(mode="python")
+                if entry.template.goal_target
+                else None
+            ),
             "status": "active",
             "start_date": date.fromisoformat(entry.start_date),
             "end_date": date.fromisoformat(entry.end_date),

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from datetime import date, timedelta
-from math import sqrt
-from statistics import mean, median
+from statistics import median
 from typing import Any
 
 from app.repositories.activities import ActivityRepository, ActivitySampleRepository
@@ -11,228 +9,141 @@ from app.repositories.plans import PlannedSessionRepository, TrainingPlanReposit
 from app.schemas.activities import ActivityResponse
 from app.schemas.analytics import (
     AnalyticsSummary,
+    BestEffort,
     ComparableRun,
+    EasyPaceExclusion,
+    EasyPaceHeartRate,
+    EasyPaceMonth,
+    EasyPaceRun,
+    GoalDefinition,
+    GoalEffort,
+    GoalPlanReference,
+    GoalProgress,
+    GoalRep,
+    GoalTrackSession,
+    GoalWeek,
     HeartRateResponseResult,
-    MileagePoint,
-    PersonalBest,
-    PlanProgress,
+    HeartRateZoneAnalytics,
+    HeartRateZoneBoundary,
+    LoadRatioBand,
+    LongestRun,
+    RunZoneSummary,
     SameWeekdayRun,
-    TemperatureBand,
+    TrainingLoad,
+    TrainingLoadDay,
+    ZoneWeek,
 )
 from app.schemas.common import utc_now
-from app.schemas.workload_trend import WorkloadTrend
+from app.services.best_efforts import (
+    BEST_EFFORT_DISTANCES,
+    distance_series,
+    fastest_window,
+    is_exact_distance_lap,
+)
+from app.services.easy_pace_heart_rate import (
+    EASY_PACE_CATEGORIES,
+    RunFit,
+    fit_run,
+    points_from_documents,
+    reference_pace,
+)
 from app.services.fit.models import ActivitySample
-from app.services.workload_trend import (
-    STEADY_CATEGORIES,
-    build_workload_trend,
-    merge_workload_comparisons,
+from app.services.goal_progress import (
+    TRACK_CATEGORY,
+    counts_as_labeled_rep,
+    counts_as_rep,
+    distance_label,
+    goal_weeks,
+    has_workout_labels,
+    is_rep_distance,
+    pace_per_mile,
+)
+from app.services.heart_rate_response import ALGORITHM_VERSION as HEART_RATE_RESPONSE_VERSION
+from app.services.heart_rate_response import calculate_heart_rate_response
+from app.services.heart_rate_zones import heart_rate_reserve_zones
+from app.services.settings import SettingsService
+from app.services.training_load import (
+    ACUTE_DAYS,
+    CHRONIC_DAYS,
+    LOAD_HISTORY_DAYS,
+    RATIO_BANDS,
+    RATIO_GUIDANCE,
+    RunZones,
+    time_in_zones,
+    training_load,
+)
+from app.services.training_volume import (
+    WEEKLY_INCREASE_THRESHOLD,
+    WEEKLY_VOLUME_WEEKS,
+    highest_week,
+    monday_of,
+    plan_progress,
+    plan_weeks,
+    weekly_volume,
 )
 
 METERS_PER_MILE = 1609.344
+EASY_PACE_MONTHS = 12
+# Categories whose time-in-zone distribution answers "are easy runs really easy?".
+ZONE_EASY_CATEGORIES = ("easy", "recovery")
 
 
-def _solve_weighted_regression(
-    rows: list[tuple[float, float, float]], weights: list[float]
-) -> tuple[float, float, float] | None:
-    matrix = [[0.0] * 4 for _ in range(3)]
-    for (workload, hours, heart_rate), weight in zip(rows, weights, strict=True):
-        predictors = (1.0, workload, hours)
-        for row in range(3):
-            for column in range(3):
-                matrix[row][column] += weight * predictors[row] * predictors[column]
-            matrix[row][3] += weight * predictors[row] * heart_rate
-    matrix[1][1] += 1e-6
-    for pivot in range(3):
-        selected = max(range(pivot, 3), key=lambda row: abs(matrix[row][pivot]))
-        if abs(matrix[selected][pivot]) < 1e-9:
-            return None
-        matrix[pivot], matrix[selected] = matrix[selected], matrix[pivot]
-        divisor = matrix[pivot][pivot]
-        matrix[pivot] = [value / divisor for value in matrix[pivot]]
-        for row in range(3):
-            if row == pivot:
-                continue
-            factor = matrix[row][pivot]
-            matrix[row] = [
-                value - factor * pivot_value
-                for value, pivot_value in zip(matrix[row], matrix[pivot], strict=True)
-            ]
-    return matrix[0][3], matrix[1][3], matrix[2][3]
-
-
-def _robust_regression(
-    rows: list[tuple[float, float, float]],
-) -> tuple[tuple[float, float, float], list[float]] | None:
-    weights = [1.0] * len(rows)
-    coefficients = _solve_weighted_regression(rows, weights)
-    if coefficients is None:
-        return None
-    for _ in range(6):
-        predictions = [
-            coefficients[0] + coefficients[1] * workload + coefficients[2] * hours
-            for workload, hours, _heart_rate in rows
-        ]
-        residuals = [row[2] - prediction for row, prediction in zip(rows, predictions, strict=True)]
-        scale = max(1.0, median(abs(value) for value in residuals) * 1.4826)
-        cutoff = 1.5 * scale
-        weights = [1.0 if abs(value) <= cutoff else cutoff / abs(value) for value in residuals]
-        updated = _solve_weighted_regression(rows, weights)
-        if updated is None:
-            return None
-        coefficients = updated
-    predictions = [
-        coefficients[0] + coefficients[1] * workload + coefficients[2] * hours
-        for workload, hours, _heart_rate in rows
+def _month_starts(today: date, count: int) -> list[date]:
+    """First days of the last `count` calendar months, oldest first, ending with this month."""
+    index = today.year * 12 + today.month - 1
+    return [
+        date((index - offset) // 12, (index - offset) % 12 + 1, 1)
+        for offset in range(count - 1, -1, -1)
     ]
-    return coefficients, predictions
 
 
-def _correlation(left: list[float], right: list[float]) -> float:
-    left_mean, right_mean = mean(left), mean(right)
-    numerator = sum((x - left_mean) * (y - right_mean) for x, y in zip(left, right, strict=True))
-    left_sum = sum((value - left_mean) ** 2 for value in left)
-    right_sum = sum((value - right_mean) ** 2 for value in right)
-    return numerator / sqrt(left_sum * right_sum) if left_sum and right_sum else 0.0
-
-
-def _delayed_workloads(
-    samples: list[ActivitySample], response_seconds: int
-) -> list[tuple[ActivitySample, float]]:
-    result: list[tuple[ActivitySample, float]] = []
-    filtered: float | None = None
-    prior: ActivitySample | None = None
-    for index, sample in enumerate(samples):
-        speed = sample.speed_mps or 0.0
-        earlier = samples[max(0, index - 6)]
-        distance_change = (sample.distance_meters or 0) - (earlier.distance_meters or 0)
-        elevation_change = (
-            (sample.elevation_meters or 0) - (earlier.elevation_meters or 0)
-            if sample.elevation_meters is not None and earlier.elevation_meters is not None
-            else 0.0
-        )
-        grade = (
-            max(-0.25, min(0.25, elevation_change / distance_change))
-            if distance_change >= 20
-            else 0
-        )
-        factor = 1 + (4 * grade if grade >= 0 else 2 * grade)
-        workload = speed * max(0.65, min(2.0, factor))
-        elapsed = min(15, max(1, sample.elapsed_seconds - prior.elapsed_seconds)) if prior else 5
-        alpha = elapsed / (response_seconds + elapsed)
-        filtered = workload if filtered is None else filtered + alpha * (workload - filtered)
-        result.append((sample, filtered))
-        prior = sample
-    return result
-
-
-def calculate_heart_rate_response(activity: Any, samples: list[ActivitySample]) -> dict[str, Any]:
-    base = {"algorithm_version": 3, "eligible": False, "exclusion_reason": None}
-    if str(activity.sport) != "run":
-        return base | {"exclusion_reason": "Only running activities are eligible."}
-    if activity.elapsed_time_seconds < 1500:
-        return base | {"exclusion_reason": "Activity is shorter than 25 minutes."}
-    ordered = sorted(samples, key=lambda sample: sample.elapsed_seconds)
-    start_distance = getattr(activity, "heart_rate_analysis_start_distance_meters", None)
-    analysis = [
-        sample
-        for sample in ordered
-        if sample.elapsed_seconds >= 300
-        and (
-            start_distance is None
-            or (sample.distance_meters is not None and sample.distance_meters >= start_distance)
-        )
-    ]
-    if len(analysis) < 100:
-        return base | {"exclusion_reason": "Insufficient samples after the warm-up."}
-    valid = [sample for sample in analysis if sample.heart_rate and (sample.speed_mps or 0) >= 0.5]
-    if len(valid) / len(analysis) < 0.8:
-        return base | {"exclusion_reason": "Heart-rate or speed coverage is below 80%."}
-    usable_seconds = sum(
-        min(right.elapsed_seconds - left.elapsed_seconds, 10)
-        for left, right in zip(valid, valid[1:], strict=False)
-    )
-    if usable_seconds < 1200:
-        return base | {"exclusion_reason": "Less than 20 minutes of usable running data remains."}
-    best: tuple[float, int, tuple[float, float, float], list[float], list[float]] | None = None
-    response_candidates = (15, 30, 45, 60, 90, 120)
-    for response_seconds in response_candidates:
-        delayed = _delayed_workloads(valid, response_seconds)
-        workloads = [workload for _sample, workload in delayed]
-        rows = [
-            (
-                workload,
-                (sample.elapsed_seconds - valid[0].elapsed_seconds) / 3600,
-                sample.heart_rate,
-            )
-            for sample, workload in delayed
-            if sample.heart_rate is not None
-        ]
-        fitted = _robust_regression(rows)
-        if fitted is None or fitted[0][1] < -0.1:
-            continue
-        coefficients, predictions = fitted
-        rmse = sqrt(
-            mean(
-                (row[2] - predicted) ** 2 for row, predicted in zip(rows, predictions, strict=True)
-            )
-        )
-        if best is None or rmse < best[0]:
-            best = rmse, response_seconds, coefficients, predictions, workloads
-    if best is None:
-        return base | {"exclusion_reason": "Workload and heart-rate response could not be modeled."}
-    rmse, response_seconds, coefficients, predictions, workloads = best
-    hours = [(sample.elapsed_seconds - valid[0].elapsed_seconds) / 3600 for sample in valid]
-    if abs(_correlation(workloads, hours)) > 0.92:
-        return base | {
-            "exclusion_reason": (
-                "Pace or grade changed too consistently with time to separate workload "
-                "from the heart-rate time trend."
-            )
-        }
-    heart_rates = [float(sample.heart_rate) for sample in valid if sample.heart_rate is not None]
-    total_variation = sum((value - mean(heart_rates)) ** 2 for value in heart_rates)
-    residual_variation = sum(
-        (value - prediction) ** 2
-        for value, prediction in zip(heart_rates, predictions, strict=True)
-    )
-    r_squared = max(0.0, 1 - residual_variation / total_variation) if total_variation else 0.0
-    workload_mean = mean(workloads)
-    workload_variability = (
-        sqrt(mean((value - workload_mean) ** 2 for value in workloads)) / workload_mean
-        if workload_mean
-        else 0
-    )
-    duration_hours = usable_seconds / 3600
-    adjusted_rate = coefficients[2]
-    confidence_score = sum(
-        (
-            usable_seconds >= 3300,
-            usable_seconds >= 2100,
-            r_squared >= 0.75,
-            r_squared >= 0.5,
-            rmse <= 5,
-            rmse <= 8,
-        )
-    )
-    confidence = "high" if confidence_score >= 5 else "moderate" if confidence_score >= 3 else "low"
-    return base | {
-        "eligible": True,
-        "adjusted_change_bpm_per_hour": round(adjusted_rate, 2),
-        "adjusted_total_change_bpm": round(adjusted_rate * duration_hours, 2),
-        "response_time_constant_seconds": (
-            response_seconds if workload_variability >= 0.05 else None
-        ),
-        "r_squared": round(r_squared, 3),
-        "rmse_bpm": round(rmse, 2),
-        "analysis_start_seconds": valid[0].elapsed_seconds,
-        "analysis_start_distance_meters": start_distance,
-        "usable_duration_seconds": round(usable_seconds, 1),
-        "confidence": confidence,
-        "interpretation": (
-            "Estimated heart-rate change over time after accounting for recorded speed and grade; "
-            "weather, hydration, fatigue, wind, and sensor error are not controlled."
-        ),
+def _temperatures(activity: dict) -> dict[str, float | None]:
+    celsius = (activity.get("summary") or {}).get("temperature_celsius")
+    return {
+        "temperature_celsius": celsius,
+        "temperature_fahrenheit": round(celsius * 9 / 5 + 32, 1) if celsius is not None else None,
     }
+
+
+def _effort_candidates(
+    run: dict, points: list[tuple[float, float]], distance: float
+) -> list[dict[str, Any]]:
+    """Exact-distance effort candidates for one run: fastest sample window and exact laps."""
+    candidates: list[dict[str, Any]] = []
+    effort = fastest_window(points, distance) if points else None
+    if effort:
+        candidates.append(
+            {
+                "elapsed_seconds": round(effort.elapsed_seconds, 1),
+                "pace_seconds_per_mile": round(
+                    effort.elapsed_seconds / distance * METERS_PER_MILE, 1
+                ),
+                "source": "samples",
+                "start_distance_meters": round(effort.start_distance_meters, 1),
+            }
+        )
+    for lap in run.get("laps") or []:
+        if is_exact_distance_lap(lap.get("distance_meters"), distance):
+            seconds = lap["elapsed_time_seconds"]
+            candidates.append(
+                {
+                    "elapsed_seconds": round(seconds, 1),
+                    "pace_seconds_per_mile": round(seconds / distance * METERS_PER_MILE, 1),
+                    "source": "lap",
+                    "lap_index": lap.get("index"),
+                }
+            )
+    return candidates
+
+
+def _effort_rank(item: BestEffort | GoalEffort) -> tuple:
+    """Fastest to the whole second, then race category, earlier date, lap over samples."""
+    return (
+        round(item.elapsed_seconds),
+        item.category != "race",
+        item.local_date,
+        item.source != "lap",
+    )
 
 
 class AnalyticsService:
@@ -242,37 +153,11 @@ class AnalyticsService:
         plans: TrainingPlanRepository,
         sessions: PlannedSessionRepository,
         samples: ActivitySampleRepository,
+        settings: SettingsService | None = None,
     ) -> None:
         self.activities, self.plans, self.sessions = activities, plans, sessions
         self.samples = samples
-
-    async def workload_trend(self, today: date) -> WorkloadTrend:
-        start = today - timedelta(days=179)
-        activities = await self.activities.list_range(
-            start.isoformat(), (today + timedelta(days=1)).isoformat()
-        )
-        # Bound sample reads and discard each batch after deriving its comparisons.
-        candidates = [a for a in activities if a.get("sport") == "run"]
-        comparisons = []
-        exclusions: dict[str, int] = defaultdict(int)
-        qualifying = 0
-        for offset in range(0, len(candidates), 25):
-            batch = candidates[offset : offset + 25]
-            identifiers = [a["id"] for a in batch if a.get("category") in STEADY_CATEGORIES]
-            chunks = await self.samples.list_for_activities(identifiers) if identifiers else []
-            samples_by_activity: dict[str, list[ActivitySample]] = defaultdict(list)
-            for chunk in chunks:
-                samples_by_activity[str(chunk["activity_id"])].extend(
-                    ActivitySample.model_validate(sample) for sample in chunk.get("samples", [])
-                )
-            result = build_workload_trend(batch, samples_by_activity, start, today)
-            qualifying += result.qualifying_runs
-            for reason, count in result.exclusion_counts.items():
-                exclusions[reason] += count
-            comparisons.extend(result.comparisons)
-        return merge_workload_comparisons(
-            comparisons, start, today, len(candidates), qualifying, dict(exclusions)
-        )
+        self.settings = settings
 
     async def recalculate_heart_rate_response(self, today: date) -> int:
         activities = await self.activities.list_range(
@@ -323,112 +208,43 @@ class AnalyticsService:
             "0001-01-01", (today + timedelta(days=1)).isoformat()
         )
         runs = [item for item in activities if item.get("sport") == "run"]
-        weekly: dict[date, float] = defaultdict(float)
-        for run in runs:
-            run_date = date.fromisoformat(run["local_date"])
-            monday = run_date - timedelta(days=run_date.weekday())
-            weekly[monday] += (run.get("distance_meters") or 0) / METERS_PER_MILE
-        rolling = {
-            days: round(
-                sum(
-                    (run.get("distance_meters") or 0) / METERS_PER_MILE
-                    for run in runs
-                    if date.fromisoformat(run["local_date"]) >= today - timedelta(days=days - 1)
-                ),
-                2,
-            )
-            for days in (7, 28, 90)
-        }
         active = await self.plans.get_active()
-        plan_progress = None
+        progress = None
+        planned_by_week: dict[date, float] = {}
         if active:
-            plan_sessions = await self.sessions.list_for_plan(active["id"])
-            week_targets = active.get("week_summaries") or []
-            planned = (
-                sum(week.get("planned_running_miles") or 0 for week in week_targets)
-                if week_targets
-                else sum(
-                    (session.get("planned_distance_meters") or 0) / METERS_PER_MILE
-                    for session in plan_sessions
-                    if session.get("sport") == "run"
-                )
-            )
-            completed = sum(
-                (run.get("distance_meters") or 0) / METERS_PER_MILE
-                for run in runs
-                if run.get("planned_session_id")
-                and active["start_date"] <= run["local_date"] <= active["end_date"]
-            )
-            completed_sessions = sum(
-                1
-                for session in plan_sessions
-                if str(session.get("status", "")).startswith("completed")
-            )
-            current_monday = today - timedelta(days=today.weekday())
-            current_sunday = current_monday + timedelta(days=6)
-            plan_start = date.fromisoformat(active["start_date"])
-            current_week_number = (current_monday - plan_start).days // 7 + 1
-            current_target = next(
-                (
-                    week.get("planned_running_miles")
-                    for week in week_targets
-                    if week.get("week_number") == current_week_number
-                ),
-                None,
-            )
-            current_planned = (
-                current_target
-                if current_target is not None
-                else sum(
-                    (session.get("planned_distance_meters") or 0) / METERS_PER_MILE
-                    for session in plan_sessions
-                    if session.get("sport") == "run"
-                    and current_monday.isoformat()
-                    <= session["scheduled_date"]
-                    <= current_sunday.isoformat()
-                )
-            )
-            current_completed = sum(
-                (run.get("distance_meters") or 0) / METERS_PER_MILE
-                for run in runs
-                if current_monday.isoformat() <= run["local_date"] <= current_sunday.isoformat()
-            )
-            plan_progress = PlanProgress(
-                plan_name=active["name"],
-                planned_miles=round(planned, 2),
-                completed_miles=round(completed, 2),
-                completed_sessions=completed_sessions,
-                total_sessions=len(plan_sessions),
-                skipped_sessions=sum(1 for s in plan_sessions if s.get("status") == "skipped"),
-                rescheduled_sessions=sum(
-                    1 for s in plan_sessions if s.get("status") == "rescheduled"
-                ),
-                current_week_planned_miles=round(current_planned, 2),
-                current_week_completed_miles=round(current_completed, 2),
-            )
+            weeks = plan_weeks(active, await self.sessions.list_for_plan(active["id"]))
+            planned_by_week = {week.start: week.planned_miles for week in weeks}
+            progress = plan_progress(active, weeks, {run["id"]: run for run in runs}, today)
+        longest = max(runs, key=lambda run: run.get("distance_meters") or 0, default=None)
         return AnalyticsSummary(
             as_of_date=today,
-            rolling_7_day_miles=rolling[7],
-            rolling_28_day_miles=rolling[28],
-            rolling_90_day_miles=rolling[90],
-            weekly_mileage=[
-                MileagePoint(week_start=week, miles=round(miles, 2))
-                for week, miles in sorted(weekly.items())[-16:]
-            ],
-            plan_progress=plan_progress,
-            personal_bests=self._personal_bests(runs, weekly),
-            temperature_bands=self._temperature_bands(runs),
+            weekly_volume=weekly_volume(runs, today, planned_by_week),
+            weekly_volume_increase_threshold_percent=WEEKLY_INCREASE_THRESHOLD * 100,
+            plan_progress=progress,
+            best_efforts=await self._best_efforts(runs),
+            longest_run=LongestRun(
+                activity_id=longest["id"],
+                activity_title=longest.get("title"),
+                local_date=longest["local_date"],
+                distance_meters=longest.get("distance_meters") or 0,
+                distance_miles=round((longest.get("distance_meters") or 0) / METERS_PER_MILE, 2),
+            )
+            if longest
+            else None,
+            highest_week=highest_week(runs),
             heart_rate_response_history=[
                 HeartRateResponseResult(
                     activity_id=run["id"],
                     activity_title=run.get("title"),
                     local_date=run["local_date"],
                     category=run.get("category"),
+                    **_temperatures(run),
                     **run["derived_metrics"]["heart_rate_response"],
                 )
                 for run in runs
                 if (run.get("derived_metrics") or {}).get("heart_rate_response", {}).get("eligible")
             ],
+            heart_rate_response_algorithm_version=HEART_RATE_RESPONSE_VERSION,
         )
 
     async def comparable_runs(self, activity_id: str) -> list[ComparableRun] | None:
@@ -461,59 +277,367 @@ class AnalyticsService:
         )[-12:]
         return [SameWeekdayRun.from_activity(item, anchor["id"]) for item in [*previous, anchor]]
 
-    def _personal_bests(self, runs: list[dict], weekly: dict[date, float]) -> list[PersonalBest]:
-        results: list[PersonalBest] = []
-        if runs:
-            longest = max(runs, key=lambda run: run.get("distance_meters") or 0)
-            results.append(
-                PersonalBest(
-                    label="Longest run",
-                    value=f"{(longest.get('distance_meters') or 0) / METERS_PER_MILE:.2f} mi",
-                    activity_id=longest["id"],
-                    local_date=longest["local_date"],
+    async def _best_efforts(self, runs: list[dict]) -> list[BestEffort]:
+        shortest = min(distance for _label, distance in BEST_EFFORT_DISTANCES)
+        eligible = [run for run in runs if (run.get("distance_meters") or 0) >= shortest - 2]
+        raw_series = await self.samples.list_distance_series([run["id"] for run in eligible])
+        series = {key: distance_series(value) for key, value in raw_series.items()}
+        results: list[BestEffort] = []
+        for label, distance in BEST_EFFORT_DISTANCES:
+            candidates = [
+                BestEffort(
+                    distance_label=label,
+                    distance_meters=distance,
+                    activity_id=run["id"],
+                    activity_title=run.get("title"),
+                    local_date=run["local_date"],
+                    category=run.get("category"),
+                    **candidate,
+                )
+                for run in eligible
+                for candidate in _effort_candidates(run, series.get(run["id"], []), distance)
+            ]
+            if candidates:
+                results.append(min(candidates, key=_effort_rank))
+        return results
+
+    async def _runs_between(self, start: date, end: date) -> list[dict]:
+        """Run activities with local dates from `start` through `end` inclusive."""
+        activities = await self.activities.list_range(
+            start.isoformat(), (end + timedelta(days=1)).isoformat()
+        )
+        return [item for item in activities if item.get("sport") == "run"]
+
+    async def _heart_rate_settings(self) -> tuple[int | None, int | None]:
+        if self.settings is None:
+            return None, None
+        current = await self.settings.get()
+        return current.max_heart_rate_bpm, current.resting_heart_rate_bpm
+
+    async def heart_rate_zones(self, today: date) -> HeartRateZoneAnalytics:
+        max_hr, resting_hr = await self._heart_rate_settings()
+        common: dict[str, Any] = {
+            "as_of_date": today,
+            "max_heart_rate_bpm": max_hr,
+            "resting_heart_rate_bpm": resting_hr,
+            "easy_run_categories": list(ZONE_EASY_CATEGORIES),
+        }
+        if max_hr is None or resting_hr is None:
+            return HeartRateZoneAnalytics(
+                **common,
+                status="heart_rate_settings_missing",
+                message=(
+                    "Set max and resting heart rate in Settings to see time in zones and "
+                    "training load."
+                ),
+                zones=[],
+                weekly_time_in_zones=[],
+                easy_run_weekly_distribution=[],
+                training_load=None,
+                runs=[],
+                runs_without_heart_rate=0,
+            )
+        current_week = monday_of(today)
+        first_week = current_week - timedelta(weeks=WEEKLY_VOLUME_WEEKS - 1)
+        window_start = min(first_week, today - timedelta(days=LOAD_HISTORY_DAYS - 1))
+        all_runs = await self._runs_between(date(1, 1, 1), today)
+        first_run_date = min(
+            (date.fromisoformat(str(run["local_date"])) for run in all_runs), default=None
+        )
+        window_runs = [
+            run for run in all_runs if date.fromisoformat(str(run["local_date"])) >= window_start
+        ]
+        raw = await self.samples.list_sample_fields(
+            [run["id"] for run in window_runs], ("elapsed_seconds", "heart_rate", "speed_mps")
+        )
+        measured: list[tuple[dict, RunZones]] = []
+        without_heart_rate = 0
+        for run in window_runs:
+            seconds = time_in_zones(raw.get(run["id"], []), max_hr, resting_hr)
+            if not sum(seconds):
+                without_heart_rate += 1
+                continue
+            measured.append(
+                (
+                    run,
+                    RunZones(
+                        activity_id=run["id"],
+                        local_date=date.fromisoformat(str(run["local_date"])),
+                        category=run.get("category"),
+                        zone_seconds=seconds,
+                    ),
                 )
             )
-        for label, low, high in (("Fastest 5K", 4900, 5200), ("Fastest 10K", 9800, 10400)):
-            candidates = [run for run in runs if low <= (run.get("distance_meters") or 0) <= high]
-            if candidates:
-                best = min(
-                    candidates,
-                    key=lambda run: run.get("moving_time_seconds") or run["elapsed_time_seconds"],
-                )
-                seconds = best.get("moving_time_seconds") or best["elapsed_time_seconds"]
-                results.append(
-                    PersonalBest(
-                        label=label,
-                        value=f"{int(seconds // 60)}:{int(seconds % 60):02d}",
-                        activity_id=best["id"],
-                        local_date=best["local_date"],
+        zone_runs = [zones for _run, zones in measured]
+
+        def weeks(categories: tuple[str, ...] | None) -> list[ZoneWeek]:
+            result: list[ZoneWeek] = []
+            for offset in range(WEEKLY_VOLUME_WEEKS):
+                week = first_week + timedelta(weeks=offset)
+                selected = [
+                    zones
+                    for zones in zone_runs
+                    if week <= zones.local_date <= week + timedelta(days=6)
+                    and (categories is None or zones.category in categories)
+                ]
+                totals = [
+                    round(sum(zones.zone_seconds[index] for zones in selected), 1)
+                    for index in range(5)
+                ]
+                result.append(
+                    ZoneWeek(
+                        week_start=week,
+                        week_end=week + timedelta(days=6),
+                        is_partial=week == current_week,
+                        run_count=len(selected),
+                        zone_seconds=totals,
+                        total_seconds=round(sum(totals), 1),
                     )
                 )
-        laps = [
-            (lap, run)
-            for run in runs
-            for lap in run.get("laps", [])
-            if 1529 <= (lap.get("distance_meters") or 0) <= 1689
-        ]
-        if laps:
-            lap, run = min(laps, key=lambda pair: pair[0]["elapsed_time_seconds"])
-            seconds = lap["elapsed_time_seconds"]
-            results.append(
-                PersonalBest(
-                    label="Fastest mile lap",
-                    value=f"{int(seconds // 60)}:{int(seconds % 60):02d}",
+            return result
+
+        load = training_load(zone_runs, today, first_run_date)
+        return HeartRateZoneAnalytics(
+            **common,
+            status="ok",
+            zones=[
+                HeartRateZoneBoundary(
+                    zone=zone.zone,
+                    lower_bpm=zone.lower_bpm,
+                    upper_bpm=zone.upper_bpm,
+                    lower_reserve_percent=round(zone.lower_reserve_fraction * 100),
+                    upper_reserve_percent=round(zone.upper_reserve_fraction * 100),
+                )
+                for zone in heart_rate_reserve_zones(max_hr, resting_hr)
+            ],
+            weekly_time_in_zones=weeks(None),
+            easy_run_weekly_distribution=weeks(ZONE_EASY_CATEGORIES),
+            training_load=TrainingLoad(
+                days=[
+                    TrainingLoadDay(day=day, trimp=trimp, run_count=count)
+                    for day, trimp, count in load.daily
+                ],
+                acute_days=ACUTE_DAYS,
+                chronic_days=CHRONIC_DAYS,
+                acute_load=load.acute_load,
+                chronic_load=load.chronic_load,
+                acute_chronic_ratio=load.ratio,
+                ratio_band=load.band,
+                chronic_history_complete=load.chronic_history_complete,
+                bands=[
+                    LoadRatioBand(label=label, lower=lower, upper=upper, description=text)
+                    for label, lower, upper, text in RATIO_BANDS
+                ],
+                guidance=RATIO_GUIDANCE,
+            ),
+            runs=[
+                RunZoneSummary(
                     activity_id=run["id"],
+                    activity_title=run.get("title"),
+                    local_date=zones.local_date,
+                    category=zones.category,
+                    zone_seconds=[round(value, 1) for value in zones.zone_seconds],
+                    total_seconds=round(zones.total_seconds, 1),
+                    trimp=round(zones.trimp, 1),
+                )
+                for run, zones in reversed(measured)
+            ],
+            runs_without_heart_rate=without_heart_rate,
+        )
+
+    async def easy_pace_heart_rate(self, today: date) -> EasyPaceHeartRate:
+        month_starts = _month_starts(today, EASY_PACE_MONTHS)
+        runs = [
+            run
+            for run in await self._runs_between(month_starts[0], today)
+            if run.get("category") in EASY_PACE_CATEGORIES
+        ]
+        raw = await self.samples.list_sample_fields(
+            [run["id"] for run in runs],
+            ("elapsed_seconds", "distance_meters", "elevation_meters", "heart_rate", "speed_mps"),
+        )
+        fitted: list[tuple[dict, RunFit]] = []
+        excluded: list[EasyPaceExclusion] = []
+
+        def exclude(run: dict, reason: str) -> None:
+            excluded.append(
+                EasyPaceExclusion(
+                    activity_id=run["id"],
+                    activity_title=run.get("title"),
                     local_date=run["local_date"],
+                    category=run.get("category"),
+                    reason=reason,
                 )
             )
-        if weekly:
-            week, miles = max(weekly.items(), key=lambda item: item[1])
-            results.append(
-                PersonalBest(
-                    label="Highest weekly mileage", value=f"{miles:.2f} mi", local_date=week
+
+        for run in runs:
+            points = points_from_documents(raw.get(run["id"], []))
+            outcome = fit_run(points) if points else "No stored samples."
+            if isinstance(outcome, str):
+                exclude(run, outcome)
+            else:
+                fitted.append((run, outcome))
+        reference = reference_pace(fit for _run, fit in fitted)
+        included: list[EasyPaceRun] = []
+        for run, fit in fitted:
+            if reference is None or not fit.covers(reference):
+                exclude(run, "Reference pace is outside this run's grade-adjusted pace range.")
+                continue
+            included.append(
+                EasyPaceRun(
+                    activity_id=run["id"],
+                    activity_title=run.get("title"),
+                    local_date=run["local_date"],
+                    category=run.get("category"),
+                    heart_rate_at_reference_bpm=round(fit.heart_rate_at(reference), 1),
+                    slope_bpm_per_second_per_mile=round(fit.slope, 3),
+                    median_grade_adjusted_pace_seconds_per_mile=round(fit.median_pace, 1),
+                    median_heart_rate_bpm=round(fit.median_heart_rate, 1),
+                    steady_duration_seconds=round(fit.steady_seconds, 1),
+                    **_temperatures(run),
                 )
             )
-        return results
+        months: list[EasyPaceMonth] = []
+        for month in month_starts:
+            values = [
+                item.heart_rate_at_reference_bpm
+                for item in included
+                if (item.local_date.year, item.local_date.month) == (month.year, month.month)
+            ]
+            months.append(
+                EasyPaceMonth(
+                    month=month,
+                    median_heart_rate_bpm=round(median(values), 1) if values else None,
+                    run_count=len(values),
+                )
+            )
+        return EasyPaceHeartRate(
+            as_of_date=today,
+            categories=list(EASY_PACE_CATEGORIES),
+            window_start=month_starts[0],
+            reference_pace_seconds_per_mile=reference,
+            months=months,
+            runs=included,
+            excluded=excluded,
+        )
+
+    async def goal_progress(self, today: date) -> GoalProgress:
+        active = await self.plans.get_active()
+        if not active:
+            return GoalProgress(as_of_date=today, status="no_active_plan")
+        start = date.fromisoformat(str(active["start_date"]))
+        end = date.fromisoformat(str(active["end_date"]))
+        plan = GoalPlanReference(
+            plan_id=active["id"], plan_name=active["name"], start_date=start, end_date=end
+        )
+        target = active.get("goal_target")
+        if not target:
+            return GoalProgress(as_of_date=today, status="no_goal", plan=plan)
+        distance = float(target["distance_meters"])
+        goal_time = float(target["target_time_seconds"])
+        goal_pace = pace_per_mile(goal_time, distance)
+        week_starts = goal_weeks(start, end)
+        window_start = week_starts[0]
+        window_end = min(today, week_starts[-1] + timedelta(days=6))
+        runs = (
+            await self._runs_between(window_start, window_end) if window_end >= window_start else []
+        )
+        eligible = [run for run in runs if (run.get("distance_meters") or 0) >= distance - 2]
+        raw_series = await self.samples.list_distance_series([run["id"] for run in eligible])
+        efforts = [
+            GoalEffort(
+                activity_id=run["id"],
+                activity_title=run.get("title"),
+                local_date=run["local_date"],
+                category=run.get("category"),
+                **candidate,
+            )
+            for run in eligible
+            for candidate in _effort_candidates(
+                run, distance_series(raw_series.get(run["id"], [])), distance
+            )
+        ]
+        weeks = [
+            GoalWeek(
+                week_start=week,
+                week_end=week + timedelta(days=6),
+                is_before_plan=week < monday_of(start),
+                is_future=week > today,
+                best_effort=min(
+                    (
+                        effort
+                        for effort in efforts
+                        if week <= effort.local_date <= week + timedelta(days=6)
+                    ),
+                    key=_effort_rank,
+                    default=None,
+                ),
+            )
+            for week in week_starts
+        ]
+        best = min(efforts, key=_effort_rank, default=None)
+        sessions: list[GoalTrackSession] = []
+        for run in reversed(runs):
+            if run.get("category") != TRACK_CATEGORY:
+                continue
+            rep_laps = [
+                (lap, pace_per_mile(lap["elapsed_time_seconds"], lap["distance_meters"]))
+                for lap in run.get("laps") or []
+                if is_rep_distance(lap.get("distance_meters")) and lap.get("elapsed_time_seconds")
+            ]
+            fastest = min((pace for _lap, pace in rep_laps), default=0.0)
+            labeled = has_workout_labels(run.get("laps") or [])
+            laps = [
+                GoalRep(
+                    lap_index=lap["index"],
+                    distance_meters=round(lap["distance_meters"], 1),
+                    elapsed_seconds=round(lap["elapsed_time_seconds"], 1),
+                    pace_seconds_per_mile=round(pace, 1),
+                    pace_seconds_per_400m=round(pace / METERS_PER_MILE * 400, 1),
+                    pace_delta_seconds_per_mile=round(pace - goal_pace, 1),
+                    counts_as_rep=(
+                        counts_as_labeled_rep(lap)
+                        if labeled
+                        else counts_as_rep(pace, fastest, goal_pace)
+                    ),
+                    at_or_under_goal_pace=pace <= goal_pace,
+                )
+                for lap, pace in rep_laps
+            ]
+            sessions.append(
+                GoalTrackSession(
+                    activity_id=run["id"],
+                    activity_title=run.get("title"),
+                    local_date=run["local_date"],
+                    rep_count=sum(lap.counts_as_rep for lap in laps),
+                    reps_at_or_under_goal_pace=sum(
+                        lap.at_or_under_goal_pace for lap in laps if lap.counts_as_rep
+                    ),
+                    rep_source="workout" if labeled else "pace",
+                    laps=laps,
+                )
+            )
+        return GoalProgress(
+            as_of_date=today,
+            status="ok",
+            plan=plan,
+            goal=GoalDefinition(
+                distance_meters=distance,
+                distance_label=distance_label(distance),
+                target_time_seconds=goal_time,
+                pace_seconds_per_mile=round(goal_pace, 1),
+                pace_seconds_per_400m=round(goal_time / distance * 400, 1),
+            ),
+            window_start=window_start,
+            window_end=window_end,
+            weeks=weeks,
+            current_best=best,
+            gap_seconds=round(best.elapsed_seconds - goal_time, 1) if best else None,
+            gap_pace_seconds_per_mile=(
+                round(best.pace_seconds_per_mile - goal_pace, 1) if best else None
+            ),
+            track_sessions=sessions,
+        )
 
     def _comparable_runs(self, runs: list[dict], anchor: dict | None = None) -> list[ComparableRun]:
         ordered = sorted(runs, key=lambda run: run["local_date"], reverse=True)
@@ -529,31 +653,3 @@ class AnalyticsService:
             and distance
             and abs((run.get("distance_meters") or 0) - distance) / distance <= 0.15
         ][:6]
-
-    def _temperature_bands(self, runs: list[dict]) -> list[TemperatureBand]:
-        bands = [("Under 60°F", -999, 15.56), ("60–75°F", 15.56, 23.89), ("Over 75°F", 23.89, 999)]
-        return [
-            TemperatureBand(
-                label=label,
-                activity_count=len(items),
-                average_pace_seconds_per_mile=round(
-                    mean(
-                        METERS_PER_MILE / item["summary"]["average_speed_mps"]
-                        for item in items
-                        if item.get("summary", {}).get("average_speed_mps")
-                    ),
-                    1,
-                )
-                if any(item.get("summary", {}).get("average_speed_mps") for item in items)
-                else None,
-            )
-            for label, low, high in bands
-            if (
-                items := [
-                    run
-                    for run in runs
-                    if (temp := run.get("summary", {}).get("temperature_celsius")) is not None
-                    and low <= temp < high
-                ]
-            )
-        ]

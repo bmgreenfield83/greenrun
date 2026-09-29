@@ -84,3 +84,48 @@ async def test_session_defaults_original_scheduled_date() -> None:
     )
 
     assert session.original_scheduled_date == session.scheduled_date
+
+
+class UpdatablePlanRepositoryFake(PlanRepositoryFake):
+    async def update(self, plan_id: str, changes: dict, _updated_at: object) -> dict | None:
+        if plan_id not in self.documents:
+            return None
+        self.documents[plan_id].update(deepcopy(changes))
+        return deepcopy(self.documents[plan_id])
+
+
+@pytest.mark.asyncio
+async def test_existing_plan_goal_target_can_be_set_and_cleared() -> None:
+    from app.schemas.plans import TrainingPlanUpdate
+
+    repository = UpdatablePlanRepositoryFake()
+    service = TrainingPlanService(repository)  # type: ignore[arg-type]
+    plan = await service.create(plan_payload())
+    assert plan.goal_target is None
+
+    updated = await service.update(
+        plan.id,
+        TrainingPlanUpdate.model_validate(
+            {"goal_target": {"distance_meters": 5000, "target_time_seconds": 1200}}
+        ),
+    )
+    assert updated.goal_target is not None
+    assert updated.goal_target.distance_meters == 5000
+
+    renamed = await service.update(plan.id, TrainingPlanUpdate(name="Renamed"))
+    assert renamed.goal_target is not None
+
+    cleared = await service.update(
+        plan.id, TrainingPlanUpdate.model_validate({"goal_target": None})
+    )
+    assert cleared.goal_target is None
+
+
+@pytest.mark.asyncio
+async def test_legacy_plan_document_without_goal_target_still_validates() -> None:
+    repository = PlanRepositoryFake()
+    service = TrainingPlanService(repository)  # type: ignore[arg-type]
+    plan = await service.create(plan_payload())
+    repository.documents[plan.id].pop("goal_target")
+
+    assert (await service.get(plan.id)).goal_target is None

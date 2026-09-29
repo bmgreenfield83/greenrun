@@ -58,8 +58,13 @@ def test_hr_response_is_transparent_and_eligible_for_steady_run() -> None:
     assert result["rmse_bpm"] >= 0
     assert 0 <= result["r_squared"] <= 1
     assert result["analysis_start_seconds"] == 300
-    assert result["algorithm_version"] == 3
-    assert result["confidence"] == "high"
+    assert result["analysis_end_seconds"] == 3600
+    assert result["analysis_ranges"] == [{"start_seconds": 300, "end_seconds": 3600}]
+    assert result["algorithm_version"] == 4
+    lower = result["adjusted_change_lower_90_bpm_per_hour"]
+    upper = result["adjusted_change_upper_90_bpm_per_hour"]
+    assert lower <= result["adjusted_change_bpm_per_hour"] <= upper
+    assert result["confidence"] in {"moderate", "high"}
 
 
 def test_hr_response_recovers_known_time_change_after_variable_workload() -> None:
@@ -92,9 +97,10 @@ def test_hr_response_includes_track_but_excludes_short_runs() -> None:
 
 
 def test_hr_response_rejects_workload_that_rises_with_time() -> None:
-    samples = [sample for sample in steady_samples() if not 1200 <= sample.elapsed_seconds <= 1260]
-    for sample in samples[-30:]:
-        sample.speed_mps = 5.0
+    samples = steady_samples()
+    for sample in samples:
+        # Progression run: speed rises steadily with time, so workload and drift are confounded.
+        sample.speed_mps = 2.5 + sample.elapsed_seconds / 3600
 
     result = calculate_heart_rate_response(activity(), samples)
 
@@ -144,18 +150,6 @@ class UnusedFake:
     pass
 
 
-@pytest.mark.asyncio
-async def test_summary_calculates_rolling_weekly_and_personal_best_values() -> None:
-    service = AnalyticsService(ActivitiesFake(), PlansFake(), UnusedFake(), UnusedFake())  # type: ignore[arg-type]
-
-    result = await service.summary(date(2026, 8, 5))
-
-    assert result.rolling_7_day_miles == pytest.approx(3.11, abs=0.01)
-    assert result.weekly_mileage[0].week_start == date(2026, 8, 3)
-    assert any(best.label == "Fastest 5K" for best in result.personal_bests)
-    assert result.temperature_bands[0].label == "60–75°F"
-
-
 class ComparableActivitiesFake(ActivitiesFake):
     async def get(self, activity_id: str) -> dict | None:
         return (await self.list_range("", ""))[0] if activity_id == "run-1" else None
@@ -200,9 +194,9 @@ class WeekdayActivitiesFake(ComparableActivitiesFake):
             anchor
             | {
                 "id": f"tuesday-{week}",
-                "local_date": date(2026, 7, 28).fromordinal(
-                    date(2026, 7, 28).toordinal() - week * 7
-                ).isoformat(),
+                "local_date": date(2026, 7, 28)
+                .fromordinal(date(2026, 7, 28).toordinal() - week * 7)
+                .isoformat(),
                 "category": "track" if week == 1 else "easy",
                 "distance_meters": 5000 + week * 100,
             }
@@ -232,3 +226,43 @@ async def test_same_weekday_runs_include_current_and_twelve_prior_runs() -> None
     assert results[-1].is_current is True
     assert any(result.category == "track" for result in results)
     assert all(result.local_date.weekday() == date(2026, 8, 4).weekday() for result in results)
+
+
+class HistoryActivitiesFake:
+    async def list_range(self, _start: str, _end: str) -> list[dict]:
+        run = (await ActivitiesFake().list_range("", ""))[0]
+        return [
+            run
+            | {
+                "derived_metrics": {
+                    "heart_rate_response": calculate_heart_rate_response(
+                        activity(), variable_workload_samples()
+                    )
+                }
+            },
+            run | {"id": "run-2", "derived_metrics": {}},
+        ]
+
+
+class EmptySamplesFake:
+    async def list_distance_series(self, _ids: list[str]) -> dict:
+        return {}
+
+
+@pytest.mark.asyncio
+async def test_summary_history_includes_date_temperature_interval_and_version() -> None:
+    service = AnalyticsService(
+        HistoryActivitiesFake(),  # type: ignore[arg-type]
+        PlansFake(),  # type: ignore[arg-type]
+        UnusedFake(),  # type: ignore[arg-type]
+        EmptySamplesFake(),  # type: ignore[arg-type]
+    )
+
+    result = await service.summary(date(2026, 9, 29))
+
+    assert result.heart_rate_response_algorithm_version == 4
+    [item] = result.heart_rate_response_history
+    assert item.local_date == date(2026, 8, 4)
+    assert item.temperature_celsius == 20 and item.temperature_fahrenheit == 68.0
+    assert item.adjusted_change_lower_90_bpm_per_hour is not None
+    assert item.analysis_ranges and item.analysis_ranges[0].start_seconds == 300

@@ -5,6 +5,7 @@ from pydantic import Field, model_validator
 
 from app.models.enums import RunCategory, Sport
 from app.schemas.common import ApiModel
+from app.schemas.plans import PlanGoalTarget
 
 
 class DayOfWeek(StrEnum):
@@ -75,6 +76,7 @@ class TrainingPlanTemplate(ApiModel):
     description: str | None = Field(default=None, max_length=10000)
     primary_goal: str | None = Field(default=None, max_length=10000)
     secondary_goal: str | None = Field(default=None, max_length=10000)
+    goal_target: PlanGoalTarget | None = None
     start_date: date | None = None
     week_starts_on: str = Field(default="monday", pattern="^monday$")
     schema_reference: PlanSchemaReference | None = None

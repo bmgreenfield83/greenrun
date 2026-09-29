@@ -202,3 +202,58 @@ async def test_blank_template_is_schema_compatible_and_includes_dates() -> None:
     assert parsed.weeks[0].sessions[0].scheduled_date == date(2026, 1, 6)
     assert parsed.primary_goal
     assert parsed.weeks[0].sessions[0].justification
+
+
+@pytest.mark.asyncio
+async def test_goal_target_is_optional_and_stored_when_imported() -> None:
+    plans = PlansFake()
+    service = PlanImportService(PlanPreviewCache(), plans, SessionsFake())  # type: ignore[arg-type]
+    preview = await service.preview(PlanImportPreviewRequest(template=template()))
+    await service.confirm(PlanImportConfirmRequest(preview_token=preview.preview_token))
+    assert plans.created is not None and plans.created["goal_target"] is None
+
+    value = template().model_dump(mode="json")
+    value["goal_target"] = {"distance_meters": 1609.344, "target_time_seconds": 360}
+    preview = await service.preview(
+        PlanImportPreviewRequest(template=TrainingPlanTemplate.model_validate(value))
+    )
+    await service.confirm(PlanImportConfirmRequest(preview_token=preview.preview_token))
+    assert plans.created["goal_target"] == {
+        "distance_meters": 1609.344,
+        "target_time_seconds": 360,
+    }
+
+
+@pytest.mark.parametrize(
+    "goal_target",
+    [
+        {"distance_meters": 0, "target_time_seconds": 360},
+        {"distance_meters": 1609.344, "target_time_seconds": -1},
+        {"distance_meters": 1609.344},
+        {"distance_meters": 1609.344, "target_time_seconds": 360, "pace": 1},
+    ],
+)
+def test_goal_target_is_validated(goal_target: dict) -> None:
+    value = template().model_dump(mode="json") | {"goal_target": goal_target}
+
+    with pytest.raises(ValidationError):
+        TrainingPlanTemplate.model_validate(value)
+
+
+def test_generated_schema_documents_goal_target() -> None:
+    schema = TrainingPlanTemplate.model_json_schema()
+
+    assert "goal_target" in schema["properties"]
+    assert "goal_target" not in schema.get("required", [])
+    assert set(schema["$defs"]["PlanGoalTarget"]["required"]) == {
+        "distance_meters",
+        "target_time_seconds",
+    }
+
+
+@pytest.mark.asyncio
+async def test_blank_template_includes_goal_target() -> None:
+    parsed = TrainingPlanTemplate.model_validate(await get_blank_plan_template())
+
+    assert parsed.goal_target is not None
+    assert parsed.goal_target.target_time_seconds == 360

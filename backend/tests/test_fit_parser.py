@@ -216,3 +216,79 @@ def test_normalizer_converts_garmin_minimum_rpe_boundary() -> None:
 def test_invalid_fit_header_is_rejected() -> None:
     with pytest.raises(InvalidFitError, match="valid FIT header"):
         GarminFitActivityParser().parse(b"not-a-fit-file!", "bad.fit", 5)
+
+
+def cadence_messages(sport: str) -> dict:
+    started = datetime(2026, 8, 4, 11, tzinfo=UTC)
+    return {
+        "session_mesgs": [
+            {
+                "start_time": started,
+                "total_elapsed_time": 10,
+                "sport": sport,
+                "avg_cadence": 83,
+                "avg_running_cadence": 83,
+                "avg_fractional_cadence": 0.5,
+                "max_cadence": 85,
+                "max_running_cadence": 85,
+            }
+        ],
+        "lap_mesgs": [
+            {
+                "start_time": started,
+                "total_elapsed_time": 10,
+                "avg_running_cadence": 82,
+                "avg_fractional_cadence": 0.25,
+                "max_cadence": 86,
+                "max_fractional_cadence": 0.5,
+            }
+        ],
+        "record_mesgs": [
+            {"timestamp": started, "cadence": 80, "fractional_cadence": 0.5},
+            {"timestamp": started + timedelta(seconds=2), "cadence": 82},
+            {"timestamp": started + timedelta(seconds=5), "cadence": 84},
+        ],
+    }
+
+
+def test_running_cadence_is_converted_to_steps_per_minute_once() -> None:
+    result = GarminFitActivityParser().normalize(cadence_messages("running"), "run.fit", 5)
+
+    summary = result.activity.summary
+    assert summary.average_cadence_spm == 167
+    assert summary.maximum_cadence_spm == 170
+    lap = result.activity.laps[0]
+    assert lap.average_cadence_spm == 164.5
+    assert lap.maximum_cadence_spm == 173
+    assert [sample.cadence_spm for sample in result.samples] == [162.5, 168]
+    assert result.activity.source.cadence_scale_version == 2
+
+
+def test_non_running_cadence_is_not_doubled() -> None:
+    result = GarminFitActivityParser().normalize(cadence_messages("cycling"), "bike.fit", 5)
+
+    assert result.activity.summary.average_cadence_spm == 83.5
+    assert result.activity.laps[0].average_cadence_spm == 82.25
+    assert result.samples[0].cadence_spm == 81.25
+
+
+def test_real_parse_path_doubles_record_cadence_for_runs() -> None:
+    result = GarminFitActivityParser().parse(synthetic_fit_bytes(), "synthetic.fit", 5)
+
+    assert result.samples[0].cadence_spm == 330
+
+
+def test_lap_intensity_and_workout_step_are_recorded() -> None:
+    messages = cadence_messages("running")
+    first = messages["lap_mesgs"][0]
+    messages["lap_mesgs"] = [
+        first | {"intensity": "warmup"},
+        first | {"intensity": 5, "wkt_step_index": 2},
+        first | {"intensity": "Rest", "wkt_step_index": 3},
+        first,
+    ]
+
+    laps = GarminFitActivityParser().normalize(messages, "run.fit", 5).activity.laps
+
+    assert [lap.intensity for lap in laps] == ["warmup", "interval", "rest", None]
+    assert [lap.workout_step_index for lap in laps] == [None, 2, 3, None]

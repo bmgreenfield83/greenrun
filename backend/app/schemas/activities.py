@@ -38,6 +38,10 @@ class ActivityLap(ApiModel):
     elevation_gain_meters: float | None = Field(default=None, ge=0)
     elevation_loss_meters: float | None = Field(default=None, ge=0)
     lap_trigger: str | None = None
+    # Garmin lap intensity (active, rest, warmup, cooldown, recovery, interval, other) and the
+    # structured-workout step the lap belongs to. Recorded only for imports after 2026-09-29.
+    intensity: str | None = None
+    workout_step_index: int | None = Field(default=None, ge=0)
 
 
 class SubjectiveData(ApiModel):
@@ -56,6 +60,8 @@ class ActivitySource(ApiModel):
     checksum_sha256: str | None = Field(default=None, min_length=64, max_length=64)
     imported_at_utc: datetime | None = None
     parser_version: str | None = None
+    # 2 = running cadence stored in steps/min; absent/1 = legacy per-leg Garmin running cadence.
+    cadence_scale_version: int | None = None
     device_manufacturer: str | None = None
     device_product: str | None = None
     garmin_activity_id: str | None = None

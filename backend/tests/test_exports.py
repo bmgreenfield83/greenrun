@@ -145,9 +145,9 @@ async def test_activity_and_plan_analysis_exports_include_context_and_unplanned_
     assert activity["planned_session"]["id"] == "s1"
     assert activity["samples"][0]["average_heart_rate"] == 140
     assert analysis is not None and analysis["export_type"] == "training_plan_analysis"
-    assert analysis["trend_metrics"]["heart_rate_response"][0][
-        "adjusted_change_bpm_per_hour"
-    ] == 4.8
+    assert (
+        analysis["trend_metrics"]["heart_rate_response"][0]["adjusted_change_bpm_per_hour"] == 4.8
+    )
     assert analysis["weekly_summaries"][0]["completed_running_miles"] == pytest.approx(
         3.11, abs=0.01
     )

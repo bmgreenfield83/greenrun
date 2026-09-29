@@ -99,6 +99,16 @@ $env:CONFIRM_RESTORE="YES"
 
 For a differently named source database, set `BACKUP_DATABASE` before restoring. Restore uses `--drop`; read [docs/database-backup.md](docs/database-backup.md) first.
 
+## Data migrations
+
+Migrations run as a dry run unless you pass `--apply`. Back up the database before applying one. See [docs/data-model.md](docs/data-model.md#migrations).
+
+```powershell
+Set-Location backend
+py -3.12 -m app.db.migrations.double_running_cadence
+py -3.12 -m app.db.migrations.double_running_cadence --apply
+```
+
 ## Optional Docker
 
 ```powershell

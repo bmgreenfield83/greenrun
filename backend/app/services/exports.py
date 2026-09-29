@@ -279,6 +279,7 @@ class ExportService:
             "description": plan.get("description"),
             "primary_goal": plan.get("primary_goal"),
             "secondary_goal": plan.get("secondary_goal"),
+            "goal_target": plan.get("goal_target"),
             "start_date": start,
             "week_starts_on": "monday",
             "weeks": list(weeks.values()),

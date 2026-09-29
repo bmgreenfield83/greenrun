@@ -96,12 +96,13 @@ PlanImportServiceDependency = Annotated[PlanImportService, Depends(get_plan_impo
 CalendarServiceDependency = Annotated[CalendarService, Depends(get_calendar_service)]
 
 
-def get_analytics_service(database: Database) -> AnalyticsService:
+def get_analytics_service(database: Database, config: RuntimeSettings) -> AnalyticsService:
     return AnalyticsService(
         ActivityRepository(database),
         TrainingPlanRepository(database),
         PlannedSessionRepository(database),
         ActivitySampleRepository(database),
+        SettingsService(SettingsRepository(database), config),
     )
 
 

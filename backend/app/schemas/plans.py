@@ -17,11 +17,19 @@ class PlanWeekSummary(ApiModel):
     planned_running_miles: float | None = Field(default=None, ge=0)
 
 
+class PlanGoalTarget(ApiModel):
+    """Structured "time at a distance" goal, e.g. 1609.344 m in 360 s for a 6:00 mile."""
+
+    distance_meters: float = Field(gt=0, le=1_000_000)
+    target_time_seconds: float = Field(gt=0, le=30 * 24 * 3600)
+
+
 class TrainingPlanCreate(ApiModel):
     name: str = Field(min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=10000)
     primary_goal: str | None = Field(default=None, max_length=10000)
     secondary_goal: str | None = Field(default=None, max_length=10000)
+    goal_target: PlanGoalTarget | None = None
     status: PlanStatus = PlanStatus.ACTIVE
     start_date: date
     end_date: date
@@ -41,6 +49,8 @@ class TrainingPlanUpdate(ApiModel):
     description: str | None = Field(default=None, max_length=10000)
     primary_goal: str | None = Field(default=None, max_length=10000)
     secondary_goal: str | None = Field(default=None, max_length=10000)
+    # Omit to leave unchanged; send null to clear the structured goal.
+    goal_target: PlanGoalTarget | None = None
     status: PlanStatus | None = None
 
 

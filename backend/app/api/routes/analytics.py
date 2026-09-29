@@ -3,20 +3,39 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.dependencies import AnalyticsServiceDependency
-from app.schemas.analytics import AnalyticsSummary, ComparableRun, SameWeekdayRun
-from app.schemas.workload_trend import WorkloadTrend
+from app.schemas.analytics import (
+    AnalyticsSummary,
+    ComparableRun,
+    EasyPaceHeartRate,
+    GoalProgress,
+    HeartRateZoneAnalytics,
+    SameWeekdayRun,
+)
 
 router = APIRouter(prefix="/analytics")
-
-
-@router.get("/comparable-heart-rate", response_model=WorkloadTrend)
-async def get_workload_trend(service: AnalyticsServiceDependency) -> WorkloadTrend:
-    return await service.workload_trend(date.today())
 
 
 @router.get("/summary", response_model=AnalyticsSummary)
 async def get_analytics_summary(service: AnalyticsServiceDependency) -> AnalyticsSummary:
     return await service.summary(date.today())
+
+
+@router.get("/heart-rate-zones", response_model=HeartRateZoneAnalytics)
+async def get_heart_rate_zones(service: AnalyticsServiceDependency) -> HeartRateZoneAnalytics:
+    """Weekly time in HR-reserve zones, easy-run zone distribution, and TRIMP training load."""
+    return await service.heart_rate_zones(date.today())
+
+
+@router.get("/easy-pace-heart-rate", response_model=EasyPaceHeartRate)
+async def get_easy_pace_heart_rate(service: AnalyticsServiceDependency) -> EasyPaceHeartRate:
+    """Heart rate at a fixed easy grade-adjusted pace, per run and by month."""
+    return await service.easy_pace_heart_rate(date.today())
+
+
+@router.get("/goal", response_model=GoalProgress)
+async def get_goal_progress(service: AnalyticsServiceDependency) -> GoalProgress:
+    """Goal-card data from the active plan's structured goal_target."""
+    return await service.goal_progress(date.today())
 
 
 @router.post("/recalculate-heart-rate-response", response_model=dict)

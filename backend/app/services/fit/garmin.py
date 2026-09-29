@@ -72,6 +72,29 @@ def _category(sport: str, sub_sport: Any) -> str | None:
     return "other"
 
 
+CADENCE_SCALE_VERSION = 2
+"""Stored cadence convention: running cadence in steps per minute (both feet).
+
+Version 1 (the implicit value for older documents) stored Garmin's per-leg running cadence.
+"""
+
+
+def _cadence_multiplier(sport: str) -> int:
+    """Garmin records running cadence per leg (strides/min); runs are reported in steps/min."""
+    return 2 if sport == "run" else 1
+
+
+def _cadence(
+    message: dict[str, Any], keys: tuple[str, ...], fractional_key: str, multiplier: int
+) -> float | None:
+    """Combine integer and fractional cadence, then scale exactly once."""
+    whole = _number(message, *keys)
+    if whole is None:
+        return None
+    fraction = _number(message, fractional_key) or 0.0
+    return (whole + fraction) * multiplier
+
+
 def _average(values: list[float | int | None]) -> float | None:
     present = [float(value) for value in values if value is not None]
     return fmean(present) if present else None
@@ -128,7 +151,9 @@ def _workout_effort(session: dict[str, Any], manufacturer: Any) -> int | None:
     return _integer(session, "perceived_exertion", "rpe", "rating")
 
 
-def aggregate_records(records: list[dict[str, Any]], interval_seconds: int) -> list[ActivitySample]:
+def aggregate_records(
+    records: list[dict[str, Any]], interval_seconds: int, *, cadence_multiplier: int = 1
+) -> list[ActivitySample]:
     timestamped = [(record, _utc(record.get("timestamp"))) for record in records]
     timestamped = [(record, timestamp) for record, timestamp in timestamped if timestamp]
     if not timestamped:
@@ -151,7 +176,12 @@ def aggregate_records(records: list[dict[str, Any]], interval_seconds: int) -> l
                     {"value": _average([_number(item, "heart_rate") for item in values])}, "value"
                 ),
                 speed_mps=_average([_number(item, "enhanced_speed", "speed") for item in values]),
-                cadence_spm=_average([_number(item, "cadence") for item in values]),
+                cadence_spm=_average(
+                    [
+                        _cadence(item, ("cadence",), "fractional_cadence", cadence_multiplier)
+                        for item in values
+                    ]
+                ),
                 elevation_meters=_average(
                     [_number(item, "enhanced_altitude", "altitude") for item in values]
                 ),
@@ -161,7 +191,29 @@ def aggregate_records(records: list[dict[str, Any]], interval_seconds: int) -> l
     return samples
 
 
-def _laps(messages: dict[str, Any]) -> list[ActivityLap]:
+# FIT `intensity` enum values, for decoders that return numbers instead of names.
+LAP_INTENSITIES = {
+    0: "active",
+    1: "rest",
+    2: "warmup",
+    3: "cooldown",
+    4: "recovery",
+    5: "interval",
+    6: "other",
+}
+
+
+def _lap_intensity(lap: dict[str, Any]) -> str | None:
+    value = lap.get("intensity")
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, int):
+        return LAP_INTENSITIES.get(value)
+    text = str(value).strip().lower()
+    return text or None
+
+
+def _laps(messages: dict[str, Any], cadence_multiplier: int) -> list[ActivityLap]:
     result: list[ActivityLap] = []
     for index, lap in enumerate(messages.get("lap_mesgs") or [], start=1):
         elapsed = _number(lap, "total_elapsed_time")
@@ -177,11 +229,23 @@ def _laps(messages: dict[str, Any]) -> list[ActivityLap]:
                 average_speed_mps=_number(lap, "enhanced_avg_speed", "avg_speed"),
                 average_heart_rate=_integer(lap, "avg_heart_rate"),
                 maximum_heart_rate=_integer(lap, "max_heart_rate"),
-                average_cadence_spm=_number(lap, "avg_running_cadence", "avg_cadence"),
-                maximum_cadence_spm=_number(lap, "max_running_cadence", "max_cadence"),
+                average_cadence_spm=_cadence(
+                    lap,
+                    ("avg_running_cadence", "avg_cadence"),
+                    "avg_fractional_cadence",
+                    cadence_multiplier,
+                ),
+                maximum_cadence_spm=_cadence(
+                    lap,
+                    ("max_running_cadence", "max_cadence"),
+                    "max_fractional_cadence",
+                    cadence_multiplier,
+                ),
                 elevation_gain_meters=_number(lap, "total_ascent"),
                 elevation_loss_meters=_number(lap, "total_descent"),
                 lap_trigger=str(lap["lap_trigger"]) if lap.get("lap_trigger") is not None else None,
+                intensity=_lap_intensity(lap),
+                workout_step_index=_integer(lap, "wkt_step_index"),
             )
         )
     return result
@@ -226,7 +290,10 @@ class GarminFitActivityParser:
             raise InvalidFitError("The FIT activity has no usable duration.")
 
         sport = _sport(session.get("sport"))
-        samples = aggregate_records(records, sample_interval_seconds)
+        cadence_multiplier = _cadence_multiplier(sport)
+        samples = aggregate_records(
+            records, sample_interval_seconds, cadence_multiplier=cadence_multiplier
+        )
         file_id = _first(messages, "file_id_mesgs")
         device = _first(messages, "device_info_mesgs")
         timezone = "America/New_York"
@@ -262,8 +329,18 @@ class GarminFitActivityParser:
                 average_heart_rate=_integer(session, "avg_heart_rate"),
                 maximum_heart_rate=_integer(session, "max_heart_rate"),
                 average_speed_mps=average_speed,
-                average_cadence_spm=_number(session, "avg_running_cadence", "avg_cadence"),
-                maximum_cadence_spm=_number(session, "max_running_cadence", "max_cadence"),
+                average_cadence_spm=_cadence(
+                    session,
+                    ("avg_running_cadence", "avg_cadence"),
+                    "avg_fractional_cadence",
+                    cadence_multiplier,
+                ),
+                maximum_cadence_spm=_cadence(
+                    session,
+                    ("max_running_cadence", "max_cadence"),
+                    "max_fractional_cadence",
+                    cadence_multiplier,
+                ),
                 elevation_gain_meters=_number(session, "total_ascent"),
                 elevation_loss_meters=_number(session, "total_descent"),
                 calories=_number(session, "total_calories"),
@@ -272,7 +349,7 @@ class GarminFitActivityParser:
                 aerobic_training_effect=_number(session, "training_effect"),
                 anaerobic_training_effect=_number(session, "anaerobic_training_effect"),
             ),
-            laps=_laps(messages),
+            laps=_laps(messages, cadence_multiplier),
             subjective=SubjectiveData(
                 effort=_workout_effort(
                     session, device.get("manufacturer") or file_id.get("manufacturer")
@@ -283,6 +360,7 @@ class GarminFitActivityParser:
                 type="fit",
                 filename=filename,
                 parser_version=self.parser_version,
+                cadence_scale_version=CADENCE_SCALE_VERSION,
                 device_manufacturer=str(device.get("manufacturer") or file_id.get("manufacturer"))
                 if device.get("manufacturer") or file_id.get("manufacturer")
                 else None,

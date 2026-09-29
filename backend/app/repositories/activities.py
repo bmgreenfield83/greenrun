@@ -124,8 +124,28 @@ class ActivitySampleRepository:
         )
         return [document_to_api(item) async for item in cursor]
 
-    async def list_for_activities(self, activity_ids: list[str]) -> list[dict[str, Any]]:
+    async def list_distance_series(
+        self, activity_ids: list[str]
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Return elapsed time and distance samples for many activities in one query."""
+        return await self.list_sample_fields(activity_ids, ("elapsed_seconds", "distance_meters"))
+
+    async def list_sample_fields(
+        self, activity_ids: list[str], fields: tuple[str, ...]
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Return the selected sample fields for many activities in one projected query.
+
+        Samples are concatenated in chunk order per activity id; activities without samples are
+        absent from the result.
+        """
+        if not activity_ids:
+            return {}
+        projection: dict[str, int] = {"activity_id": 1, "chunk_index": 1}
+        projection.update({f"samples.{field}": 1 for field in fields})
         cursor = self.collection.find(
-            {"activity_id": {"$in": [object_id(identifier) for identifier in activity_ids]}}
-        )
-        return [document_to_api(item) async for item in cursor]
+            {"activity_id": {"$in": [object_id(item) for item in activity_ids]}}, projection
+        ).sort([("activity_id", 1), ("chunk_index", 1)])
+        series: dict[str, list[dict[str, Any]]] = {}
+        async for chunk in cursor:
+            series.setdefault(str(chunk["activity_id"]), []).extend(chunk.get("samples") or [])
+        return series

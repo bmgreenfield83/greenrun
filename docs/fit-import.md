@@ -9,7 +9,7 @@ The parser adapter uses Garmin's official [`garmin-fit-sdk`](https://github.com/
 3. Calculate SHA-256 over the uploaded bytes.
 4. Decode session, lap, device, and record messages in memory.
 5. Normalize canonical meters, seconds, meters per second, Celsius, and UTC values.
-6. Extract exact Garmin lap messages without classifying their purpose.
+6. Extract exact Garmin lap messages. Each lap keeps the watch's own `intensity` label (active, rest, warmup, cooldown, recovery, interval, other) and structured-workout step (`workout_step_index`) when recorded; these are stored for imports from 2026-09-29 on and are `null` for earlier activities. The app does not classify laps itself.
 7. Aggregate record messages to the configurable five-second persistence interval.
 8. Never copy position fields into normalized models.
 9. Detect checksum, source-ID, or start/duration/distance duplicates.
@@ -28,7 +28,7 @@ The preview cache stores normalized Pydantic models for at most 30 minutes and h
 
 ## Samples
 
-Records are grouped into five-second elapsed-time buckets. Distance uses the last known value in a bucket. Heart rate, speed, cadence, elevation, and temperature use the mean of available values. Missing fields remain `null`; they are never invented. Samples are then stored in ten-minute chunk documents. Exact Garmin laps remain embedded in the activity and are not smoothed.
+Records are grouped into five-second elapsed-time buckets. Distance uses the last known value in a bucket. Heart rate, speed, cadence, elevation, and temperature use the mean of available values. Missing fields remain `null`; they are never invented. Garmin records running cadence per leg. For `run` activities, record, lap, and session cadence is therefore doubled to steps per minute after adding `fractional_cadence` (or `avg_`/`max_fractional_cadence`) when present. Other sports keep the recorded value. New imports are marked `source.cadence_scale_version: 2`; older runs are corrected by the migration described in [data-model.md](data-model.md#migrations). Samples are then stored in ten-minute chunk documents. Exact Garmin laps remain embedded in the activity and are not smoothed.
 
 ## Coordinates
 

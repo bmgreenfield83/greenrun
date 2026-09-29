@@ -43,6 +43,7 @@ async def get_blank_plan_template() -> dict:
         "description": "Replace this description.",
         "primary_goal": "Describe the plan's most important outcome.",
         "secondary_goal": "Describe a supporting outcome, or set this to null.",
+        "goal_target": {"distance_meters": 1609.344, "target_time_seconds": 360},
         "start_date": "2026-01-05",
         "week_starts_on": "monday",
         "schema_reference": {
