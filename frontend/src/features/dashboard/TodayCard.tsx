@@ -207,7 +207,7 @@ export function TodayCard({
                   {plan.sessions.map((session) => session.title).join(" + ")}
                 </Headline>
                 <Typography color="text.secondary">
-                  Nice work. Recovery counts as training too.
+                  Nice work. It’s logged and counted toward this week.
                 </Typography>
               </Stack>
             </Stack>

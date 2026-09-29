@@ -5,7 +5,7 @@ import { shade, type Painter } from "./pixel";
 const OWNER = {
   skin: "#e2b18c",
   skinShade: "#c48f6c",
-  beard: "#9a5a36",
+  stubble: "#a88468",
   cap: "#1c1f22",
   capBill: "#2c3136",
   glasses: "#1a1d20",
@@ -42,49 +42,71 @@ function limb(
 }
 
 // Leg and arm key positions for a four-frame run cycle (and a two-frame walk), relative to the hip.
+// Six-frame jog: contact, midstance, flight on each side. Both feet leave the ground on flight frames.
 const RUN = [
   // [near knee, near foot, far knee, far foot, near elbow, near hand, far elbow, far hand]
   [
-    [3, 3],
+    [2, 3],
     [4, 7],
-    [-2, 3],
-    [-5, 5],
-    [-3, 3],
-    [-2, 6],
-    [2, 2],
-    [4, 0],
+    [-3, 2],
+    [-5, 4],
+    [-3, 2],
+    [-2, 5],
+    [1, 3],
+    [4, 1],
   ],
   [
     [1, 3],
     [0, 7],
-    [1, 3],
-    [-2, 5],
+    [2, 1],
+    [0, 4],
     [-1, 3],
     [1, 5],
     [0, 3],
     [2, 4],
   ],
   [
-    [-2, 3],
-    [-5, 5],
+    [-1, 4],
+    [-4, 6],
+    [3, 2],
+    [4, 5],
+    [0, 3],
     [3, 3],
-    [4, 7],
-    [2, 2],
-    [4, 0],
-    [-3, 3],
-    [-2, 6],
+    [-2, 3],
+    [-1, 5],
   ],
   [
+    [-3, 2],
+    [-5, 4],
+    [2, 3],
+    [4, 7],
     [1, 3],
+    [4, 1],
+    [-3, 2],
     [-2, 5],
+  ],
+  [
+    [2, 1],
+    [0, 4],
     [1, 3],
     [0, 7],
     [0, 3],
     [2, 4],
     [-1, 3],
     [1, 5],
+  ],
+  [
+    [3, 2],
+    [4, 5],
+    [-1, 4],
+    [-4, 6],
+    [-2, 3],
+    [-1, 5],
+    [0, 3],
+    [3, 3],
   ],
 ] as const;
+const RUN_LIFT = [0, 0, 1, 0, 0, 1];
 const WALK = [
   [
     [1, 3],
@@ -110,7 +132,7 @@ const WALK = [
 
 export type OwnerPose = "run" | "walk" | "stand" | "stretch";
 
-// The owner: black running cap, glasses, short reddish-brown beard, dark tee and shorts, blue shoes, a watch.
+// The owner: black running cap, glasses, a trimmed beard shadow, dark tee and shorts, blue shoes, a watch.
 // About 12x23 pixels. `frame` advances the cycle; `bob` lifts the body on flight frames.
 export function owner(
   p: Painter,
@@ -123,11 +145,11 @@ export function owner(
   const O = OWNER;
   const keys =
     pose === "run"
-      ? RUN[frame % 4]
+      ? RUN[frame % 6]
       : pose === "walk"
         ? WALK[frame % 2]
         : WALK[1];
-  const bob = pose === "run" && frame % 2 === 0 ? 1 : 0;
+  const bob = pose === "run" ? RUN_LIFT[frame % 6] : 0;
   const hipX = x,
     hipY = y - 8 - bob;
   p.px(x - 5, y - 1, 11, 2, "rgba(0,0,0,.18)");
@@ -176,7 +198,8 @@ export function owner(
   p.px(hx + 1, hy + 3, 1, 2, O.skinShade);
   p.px(hx + 3, hy + 3, 3, 1, O.glasses);
   p.px(hx + 4, hy + 3, 1, 1, O.glint);
-  p.px(hx + 1, hy + 5, 5, 2, O.beard);
+  p.px(hx + 1, hy + 5, 5, 1, O.stubble);
+  p.px(hx + 2, hy + 6, 4, 1, O.stubble);
   p.px(hx + 4, hy + 5, 1, 1, O.skinShade);
   p.px(x - 1, hy + 7, 2, 1, O.skin);
   // Near arm with the watch.

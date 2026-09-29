@@ -284,7 +284,7 @@ export const lab: SceneDefinition = {
       tick() {
         t++;
         const g = data().gait;
-        belt += g === "rest" ? 0 : g === "fast" ? 2 : g === "done" ? 0.5 : 1;
+        belt += g === "rest" ? 0 : g === "fast" ? 2 : 1;
         if (t % 2 === 0) trace++;
         if (t % 6000 === 0) buildRoom();
       },
@@ -347,21 +347,8 @@ export const lab: SceneDefinition = {
         p.px(tx + 22, feet - 18, 11, 1, C.metal);
         const g = d.gait;
         const pose =
-          g === "rest"
-            ? (t >> 5) % 2
-              ? "stretch"
-              : "stand"
-            : g === "done"
-              ? "walk"
-              : "run";
-        owner(
-          p,
-          OUTLINE,
-          tx + 15,
-          feet - 3,
-          pose,
-          g === "fast" ? t : g === "done" ? t >> 2 : t >> 1,
-        );
+          g === "rest" ? ((t >> 5) % 2 ? "stretch" : "stand") : "run";
+        owner(p, OUTLINE, tx + 15, feet - 3, pose, t);
         // Whiteboard: week miles against plan, and minutes per zone.
         const bw = 46,
           bx = xr - bw - 2,

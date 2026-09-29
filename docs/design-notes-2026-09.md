@@ -52,10 +52,13 @@ Owner decisions and critiques recorded 2026-09-29, for the next design work. Not
 - **Trail** (`trail.ts`): side-view parallax of Quiet Waters Park: sky by real time of day (dawn, day, dusk, night
   with stars, moon, summer fireflies), trees by season, the South River with the OVERLOOK deck and a heron, woods
   with a deer and falling leaves in fall, geese, other runners and dog walkers, and a mile-marker post with this
-  week's miles against the plan. The owner's gait follows today's plan (easy, long, fast, done = walking
-  cool-down, rest = stretching at the Overlook).
+  week's miles against the plan. The owner's gait follows today's plan (easy, long, fast, done = jogging
+  as well, rest = stretching at the Overlook).
 - **Lab** (`lab.ts`, Analytics): the owner on a treadmill under a wall monitor replaying the last run's heart
   rate colored by zone, a whiteboard with week miles vs plan and minutes per zone, a coach reacting to the load
   band, and a room of medals, trophies, race bibs (347 first), a ZONES poster, a QWP map, a window, and a clock.
-- The owner sprite (`sprites.ts`): black cap, glasses, short reddish-brown beard, dark tee and shorts, blue shoes,
+- The owner sprite (`sprites.ts`): black cap, glasses, a trimmed beard shadow, dark tee and shorts, blue shoes,
   a watch. Reduced-motion users get a still frame; the scenes do nothing when canvases are unavailable.
+- Future (owner idea, 2026-09-29): a proper winter look for the trail. Seasons already switch the trees (bare
+  branches and duller grass in December–February); snow on the ground and trees, a frozen river edge, and a
+  winter-dressed runner would complete it.

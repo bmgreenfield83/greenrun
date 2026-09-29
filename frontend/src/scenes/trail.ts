@@ -20,7 +20,7 @@ const SPEED: Record<Gait, number> = {
   easy: 0.8,
   long: 0.7,
   fast: 1.6,
-  done: 0.3,
+  done: 0.8,
 };
 
 interface Sky {
@@ -389,7 +389,7 @@ export const trail: SceneDefinition = {
         if (d.gait === "rest")
           scroll += (overlookX / 0.35 - runnerX / 0.35 - scroll) * 0.05;
         else scroll += speed;
-        frame = d.gait === "fast" ? t : d.gait === "done" ? t >> 2 : t >> 1;
+        frame = t;
         if (t % 600 === 0) buildSky();
         walkers = walkers.filter((w) => w.x > -30 && w.x < W + 30);
         for (const w of walkers) {
@@ -516,13 +516,7 @@ export const trail: SceneDefinition = {
           }
         }
         const pose =
-          d.gait === "rest"
-            ? (t >> 5) % 2
-              ? "stretch"
-              : "stand"
-            : d.gait === "done"
-              ? "walk"
-              : "run";
+          d.gait === "rest" ? ((t >> 5) % 2 ? "stretch" : "stand") : "run";
         owner(p, OUTLINE, runnerX, feet, pose, frame);
         for (const l of leaves)
           p.px(Math.round(l.x), Math.round(l.y), 2, 1, l.c);
