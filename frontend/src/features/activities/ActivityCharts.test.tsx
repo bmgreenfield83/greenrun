@@ -3,6 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { expect, it, vi } from "vitest";
 
 const lineChartRender = vi.fn();
+const referenceArea = vi.fn();
 
 vi.mock("recharts", () => ({
   CartesianGrid: () => null,
@@ -11,7 +12,10 @@ vi.mock("recharts", () => ({
     lineChartRender();
     return <div>{children}</div>;
   },
-  ReferenceArea: () => null,
+  ReferenceArea: (props: { x1: number; x2: number }) => {
+    referenceArea(props);
+    return null;
+  },
   ResponsiveContainer: ({ children }: { children: ReactNode }) => children,
   Scatter: () => null,
   ScatterChart: ({ children }: { children: ReactNode }) => (
@@ -41,7 +45,7 @@ it("does not rebuild charts when an unchanged analysis window gets a new object 
     <ActivityCharts
       samples={samples}
       sport="run"
-      analysisWindow={{ startSeconds: 600, durationSeconds: 1200 }}
+      analysisRanges={[{ startSeconds: 600, endSeconds: 1800 }]}
     />,
   );
   const initialRenderCount = lineChartRender.mock.calls.length;
@@ -50,9 +54,30 @@ it("does not rebuild charts when an unchanged analysis window gets a new object 
     <ActivityCharts
       samples={samples}
       sport="run"
-      analysisWindow={{ startSeconds: 600, durationSeconds: 1200 }}
+      analysisRanges={[{ startSeconds: 600, endSeconds: 1800 }]}
     />,
   );
 
   expect(lineChartRender).toHaveBeenCalledTimes(initialRenderCount);
+});
+
+it("shades each analysis range separately so stops are not shaded", () => {
+  referenceArea.mockClear();
+  render(
+    <ActivityCharts
+      samples={samples}
+      sport="run"
+      analysisRanges={[
+        { startSeconds: 300, endSeconds: 900 },
+        { startSeconds: 1200, endSeconds: 2400 },
+      ]}
+    />,
+  );
+  const shaded = referenceArea.mock.calls.map(([props]) => [
+    props.x1,
+    props.x2,
+  ]);
+  expect(shaded).toContainEqual([5, 15]);
+  expect(shaded).toContainEqual([20, 40]);
+  expect(shaded).not.toContainEqual([5, 40]);
 });

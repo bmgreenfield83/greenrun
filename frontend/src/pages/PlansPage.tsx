@@ -16,12 +16,14 @@ import {
 } from "@mui/material";
 import { useRef, useState } from "react";
 
+import { PageHeader } from "../components/common/PageHeader";
 import {
   confirmPlanImport,
   downloadBlankPlan,
   previewPlanImport,
   type PlanImportPreview,
 } from "../api/plans";
+import { localDateLabel } from "../features/activities/format";
 import { PlanLibrary } from "../features/plans/PlanLibrary";
 
 export function PlansPage() {
@@ -110,21 +112,18 @@ export function PlansPage() {
 
   return (
     <Stack spacing={3}>
-      <div>
-        <Typography variant="h4" gutterBottom>
-          Training plans
-        </Typography>
-        <Typography color="text.secondary">
-          Import a strict dated plan, or choose any date in the first week of an
-          undated plan.
-        </Typography>
-      </div>
+      <PageHeader
+        title="Training plans"
+        description="Import a strict dated plan, or choose any date in the first week of an undated plan."
+      />
       {error && <Alert severity="error">{error}</Alert>}
       {success && <Alert severity="success">{success}</Alert>}
       <Card variant="outlined">
         <CardContent>
           <Stack spacing={3}>
-            <Typography variant="h5">Import new plan</Typography>
+            <Typography variant="h5" component="h2">
+              Import new plan
+            </Typography>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <input
                 ref={input}
@@ -138,6 +137,7 @@ export function PlansPage() {
                 variant="outlined"
                 startIcon={<UploadFileRounded />}
                 onClick={() => input.current?.click()}
+                sx={{ minWidth: 0, overflowWrap: "anywhere" }}
               >
                 {filename || "Choose plan JSON"}
               </Button>
@@ -155,10 +155,11 @@ export function PlansPage() {
               value={startDate}
               onChange={(event) => setStartDate(event.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ maxWidth: 320 }}
+              sx={{ maxWidth: { sm: 320 } }}
             />
             <Button
               variant="contained"
+              sx={{ alignSelf: { sm: "flex-start" } }}
               disabled={busy || !template}
               onClick={() => void makePreview()}
             >
@@ -200,7 +201,8 @@ export function PlansPage() {
                 <Grid size={6}>
                   <Typography color="text.secondary">Dates</Typography>
                   <Typography>
-                    {preview.start_date}–{preview.end_date}
+                    {localDateLabel(preview.start_date)} –{" "}
+                    {localDateLabel(preview.end_date)}
                   </Typography>
                 </Grid>
                 <Grid size={6}>

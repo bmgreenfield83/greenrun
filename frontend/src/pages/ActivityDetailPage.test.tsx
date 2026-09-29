@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { ActivityDetailPage } from "./ActivityDetailPage";
+import { goalProgress } from "../test/analyticsFixtures";
+import { mockFetchRoutes } from "../test/mockFetch";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -226,6 +228,13 @@ it("uses cycling units throughout bike activity details", async () => {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
+    )
+    // Same-weekday runs (every request is mocked; none reaches a real backend).
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
     );
 
   render(<ActivityDetailPage activityId="bike-1" />);
@@ -237,4 +246,52 @@ it("uses cycling units throughout bike activity details", async () => {
   expect(screen.getAllByText("17.9 mph").length).toBeGreaterThan(0);
   expect(screen.getByText("Cadence (RPM)")).toBeInTheDocument();
   expect(screen.queryByText("Average pace")).not.toBeInTheDocument();
+});
+
+it("shows the 90% interval and a rep chart for track runs when the plan has a goal", async () => {
+  const track = {
+    ...activity,
+    id: "track-1",
+    category: "track",
+    title: "Track session",
+    derived_metrics: {
+      heart_rate_response: {
+        ...activity.derived_metrics.heart_rate_response,
+        algorithm_version: 4,
+        adjusted_change_lower_90_bpm_per_hour: 2.1,
+        adjusted_change_upper_90_bpm_per_hour: 7.3,
+        analysis_ranges: [
+          { start_seconds: 300, end_seconds: 900 },
+          { start_seconds: 1000, end_seconds: 1700 },
+        ],
+        stop_count: 1,
+        stopped_duration_seconds: 100,
+      },
+    },
+  };
+  mockFetchRoutes({
+    "/activities/track-1": track,
+    "/activities/track-1/samples": { items: [], total: 0 },
+    "/analytics/activities/track-1/comparables": [],
+    "/analytics/activities/track-1/same-weekday-runs": [],
+    "/analytics/goal": goalProgress({
+      track_sessions: goalProgress().track_sessions.map((session) => ({
+        ...session,
+        activity_id: "track-1",
+      })),
+    }),
+  });
+  render(<ActivityDetailPage activityId="track-1" />);
+
+  expect(
+    await screen.findByRole("heading", { name: "Reps vs goal pace" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/2 reps, 1 at or under goal pace/),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/90% interval: 2.1 to 7.3 bpm\/hour/),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/1 stop \(2 min\)/)).toBeInTheDocument();
+  expect(screen.queryByText(/older algorithm/)).not.toBeInTheDocument();
 });

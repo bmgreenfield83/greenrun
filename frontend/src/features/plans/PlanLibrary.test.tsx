@@ -63,6 +63,8 @@ it("shows the active schedule and archived plan exports", async () => {
   expect(screen.getByText("Easy aerobic run")).toBeInTheDocument();
   expect(screen.getByText("Improve 10K performance")).toBeInTheDocument();
   expect(screen.getByText("Build durable mileage")).toBeInTheDocument();
-  expect(screen.getByText("Supports the plan's aerobic goals.")).toBeInTheDocument();
+  expect(
+    screen.getByText("Supports the plan's aerobic goals."),
+  ).toBeInTheDocument();
   expect(screen.getByText("Old plan")).toBeInTheDocument();
 });

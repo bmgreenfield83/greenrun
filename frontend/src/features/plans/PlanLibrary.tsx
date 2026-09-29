@@ -2,6 +2,7 @@ import ArchiveRounded from "@mui/icons-material/ArchiveRounded";
 import DownloadRounded from "@mui/icons-material/DownloadRounded";
 import {
   Alert,
+  Box,
   Button,
   Card,
   CardContent,
@@ -21,7 +22,14 @@ import {
   type TrainingPlan,
 } from "../../api/plans";
 import { exportPlan } from "../../api/exports";
-import { metersToMiles } from "../activities/format";
+import { localDateLabel, metersToMiles } from "../activities/format";
+import { GoalTargetEditor } from "./GoalTargetEditor";
+
+const dateRange = (start: string, end: string) =>
+  `${localDateLabel(start)} – ${localDateLabel(end)}`;
+
+const sessionDate = (date: string) =>
+  localDateLabel(date, { weekday: "short", month: "short", day: "numeric" });
 
 const weekNumber = (plan: TrainingPlan, date: string) =>
   Math.floor(
@@ -82,6 +90,11 @@ export function PlanLibrary({ refreshKey }: { refreshKey: number }) {
     }
   };
 
+  const replacePlan = (updated: TrainingPlan) =>
+    setPlans((current) =>
+      current.map((plan) => (plan.id === updated.id ? updated : plan)),
+    );
+
   const exportFile = (plan: TrainingPlan, analysis: boolean) =>
     void exportPlan(plan.id, analysis).catch((reason: Error) =>
       setError(reason.message),
@@ -90,7 +103,9 @@ export function PlanLibrary({ refreshKey }: { refreshKey: number }) {
   return (
     <Stack spacing={3}>
       {error && <Alert severity="error">{error}</Alert>}
-      <Typography variant="h5">Your plans</Typography>
+      <Typography variant="h5" component="h2">
+        Your plans
+      </Typography>
       {active ? (
         <Card
           variant="outlined"
@@ -103,13 +118,20 @@ export function PlanLibrary({ refreshKey }: { refreshKey: number }) {
                 gap={1}
                 alignItems={{ sm: "center" }}
               >
-                <div style={{ flexGrow: 1 }}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="h5">{active.name}</Typography>
+                <div style={{ flexGrow: 1, minWidth: 0 }}>
+                  <Stack
+                    direction="row"
+                    gap={1}
+                    alignItems="center"
+                    flexWrap="wrap"
+                  >
+                    <Typography variant="h5" component="h3">
+                      {active.name}
+                    </Typography>
                     <Chip size="small" color="success" label="Active" />
                   </Stack>
                   <Typography color="text.secondary">
-                    {active.start_date} – {active.end_date}
+                    {dateRange(active.start_date, active.end_date)}
                   </Typography>
                 </div>
                 <Button
@@ -135,6 +157,11 @@ export function PlanLibrary({ refreshKey }: { refreshKey: number }) {
               {active.description && (
                 <Typography>{active.description}</Typography>
               )}
+              <GoalTargetEditor
+                key={`${active.id}-${active.goal_target?.distance_meters}-${active.goal_target?.target_time_seconds}`}
+                plan={active}
+                onSaved={replacePlan}
+              />
               {(active.primary_goal || active.secondary_goal) && (
                 <Grid container spacing={2}>
                   {active.primary_goal && (
@@ -160,7 +187,9 @@ export function PlanLibrary({ refreshKey }: { refreshKey: number }) {
                 </Grid>
               )}
               <Divider />
-              <Typography variant="h6">Week-by-week schedule</Typography>
+              <Typography variant="h6" component="h3">
+                Week-by-week schedule
+              </Typography>
               {[...weeks.entries()].map(([number, items]) => {
                 const summary = active.week_summaries.find(
                   (week) => week.week_number === number,
@@ -190,10 +219,14 @@ export function PlanLibrary({ refreshKey }: { refreshKey: number }) {
                               <Stack
                                 direction="row"
                                 justifyContent="space-between"
+                                gap={1.5}
                                 sx={{
-                                  p: 1,
-                                  bgcolor: "action.hover",
-                                  borderRadius: 1,
+                                  p: 1.25,
+                                  height: "100%",
+                                  bgcolor: "#f4f8f7",
+                                  border: 1,
+                                  borderColor: "divider",
+                                  borderRadius: 2,
                                 }}
                               >
                                 <div>
@@ -204,16 +237,26 @@ export function PlanLibrary({ refreshKey }: { refreshKey: number }) {
                                     variant="body2"
                                     color="text.secondary"
                                   >
-                                    {session.scheduled_date} ·{" "}
+                                    {sessionDate(session.scheduled_date)} ·{" "}
                                     {session.status.replaceAll("_", " ")}
                                   </Typography>
                                   {session.justification && (
-                                    <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{ mt: 0.5 }}
+                                    >
                                       {session.justification}
                                     </Typography>
                                   )}
                                 </div>
-                                <Typography>
+                                <Typography
+                                  fontWeight={700}
+                                  color="primary.dark"
+                                  sx={{
+                                    whiteSpace: "nowrap",
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
                                   {session.planned_distance_meters == null
                                     ? ""
                                     : metersToMiles(
@@ -241,7 +284,9 @@ export function PlanLibrary({ refreshKey }: { refreshKey: number }) {
 
       {historical.length > 0 && (
         <Stack spacing={1.5}>
-          <Typography variant="h6">Archived and previous plans</Typography>
+          <Typography variant="h6" component="h3">
+            Archived and previous plans
+          </Typography>
           {historical.map((plan) => (
             <Card variant="outlined" key={plan.id}>
               <CardContent>
@@ -250,14 +295,31 @@ export function PlanLibrary({ refreshKey }: { refreshKey: number }) {
                   gap={1}
                   alignItems={{ sm: "center" }}
                 >
-                  <div style={{ flexGrow: 1 }}>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                  <div style={{ flexGrow: 1, minWidth: 0 }}>
+                    <Stack
+                      direction="row"
+                      gap={1}
+                      alignItems="center"
+                      flexWrap="wrap"
+                    >
                       <Typography fontWeight={800}>{plan.name}</Typography>
                       <Chip size="small" label={plan.status} />
                     </Stack>
                     <Typography variant="body2" color="text.secondary">
-                      {plan.start_date} – {plan.end_date}
+                      {dateRange(plan.start_date, plan.end_date)}
                     </Typography>
+                    {plan.primary_goal && (
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        {plan.primary_goal}
+                      </Typography>
+                    )}
+                    <Box sx={{ mt: 1 }}>
+                      <GoalTargetEditor
+                        key={`${plan.id}-${plan.goal_target?.distance_meters}-${plan.goal_target?.target_time_seconds}`}
+                        plan={plan}
+                        onSaved={replacePlan}
+                      />
+                    </Box>
                   </div>
                   <Button onClick={() => exportFile(plan, false)}>
                     Export plan

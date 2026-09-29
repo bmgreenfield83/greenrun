@@ -7,6 +7,7 @@ import {
   CardContent,
   Grid,
   MenuItem,
+  Skeleton,
   Stack,
   TextField,
   Typography,
@@ -28,17 +29,29 @@ import {
   getSameWeekdayRuns,
   recalculateActivityHeartRateResponse,
   type ComparableRun,
+  type HeartRateResponseResult,
   type SameWeekdayRun,
 } from "../api/analytics";
+import { PageHeader } from "../components/common/PageHeader";
+import { SectionTitle } from "../components/common/SectionTitle";
 import { ActivityCharts } from "../features/activities/ActivityCharts";
 import { clearActivityListState } from "../features/activities/activityListState";
 import {
+  activityType,
   duration,
+  localDateLabel,
   metersToMiles,
   pace,
   speed,
 } from "../features/activities/format";
 import { LapTable } from "../features/activities/LapTable";
+import { TrackGoalSection } from "../features/activities/TrackGoalSection";
+import {
+  analysisRangesOf,
+  CURRENT_HEART_RATE_RESPONSE_VERSION,
+  intervalOf,
+  isStale,
+} from "../features/analytics/heartRateResponse";
 import { SameWeekdayTrendChart } from "../features/activities/SameWeekdayTrendChart";
 import { exportActivity } from "../api/exports";
 
@@ -148,24 +161,27 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
     }
   };
   if (error && !activity) return <Alert severity="error">{error}</Alert>;
-  if (!activity) return <Typography>Loading activity…</Typography>;
+  if (!activity)
+    return (
+      <Stack spacing={3} aria-busy="true">
+        <Typography role="status" color="text.secondary">
+          Loading activity…
+        </Typography>
+        <Skeleton variant="rounded" height={48} width="45%" />
+        <Skeleton variant="rounded" height={180} />
+        <Skeleton variant="rounded" height={140} />
+      </Stack>
+    );
   const summary = activity.summary;
   const heartRateResponse = activity.derived_metrics.heart_rate_response as
-    | {
-        eligible: boolean;
-        adjusted_change_bpm_per_hour?: number | null;
-        adjusted_total_change_bpm?: number | null;
-        response_time_constant_seconds?: number | null;
-        r_squared?: number | null;
-        rmse_bpm?: number | null;
-        exclusion_reason?: string | null;
-        algorithm_version: number;
-        confidence?: "low" | "moderate" | "high" | null;
-        analysis_start_seconds?: number | null;
-        usable_duration_seconds?: number | null;
-        interpretation?: string | null;
-      }
+    | Omit<
+        HeartRateResponseResult,
+        "activity_id" | "activity_title" | "local_date"
+      >
     | undefined;
+  const responseInterval = heartRateResponse
+    ? intervalOf(heartRateResponse)
+    : null;
   const otherDerivedMetrics = Object.entries(activity.derived_metrics).filter(
     ([key]) => key !== "heart_rate_response" && key !== "heart_rate_drift",
   );
@@ -225,50 +241,45 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
   ];
   return (
     <Stack spacing={3}>
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        gap={2}
-      >
-        <div>
-          <Typography variant="h4">
-            {activity.title || activity.sport}
-          </Typography>
-          <Typography color="text.secondary">
-            {activity.local_date} · {activity.sport}
-            {activity.category
-              ? ` · ${activity.category.replaceAll("_", " ")}`
-              : ""}
-          </Typography>
-        </div>
-        <Stack direction="row" spacing={1}>
-          <Button
-            startIcon={<DownloadRounded />}
-            onClick={() =>
-              void exportActivity(activity.id).catch((reason: Error) =>
-                setError(reason.message),
-              )
-            }
-          >
-            Export
-          </Button>
-          <Button
-            color="error"
-            startIcon={<DeleteOutlineRounded />}
-            onClick={() => {
-              if (window.confirm("Delete this activity?"))
-                void deleteActivity(activity.id)
-                  .then(() => {
-                    clearActivityListState();
-                    setLocation("/activities");
-                  })
-                  .catch((reason: Error) => setError(reason.message));
-            }}
-          >
-            Delete
-          </Button>
-        </Stack>
-      </Stack>
+      <PageHeader
+        title={activity.title || activityType(activity)}
+        description={`${localDateLabel(activity.local_date, {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        })} · ${activityType(activity)}`}
+        actions={
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadRounded />}
+              onClick={() =>
+                void exportActivity(activity.id).catch((reason: Error) =>
+                  setError(reason.message),
+                )
+              }
+            >
+              Export
+            </Button>
+            <Button
+              color="error"
+              startIcon={<DeleteOutlineRounded />}
+              onClick={() => {
+                if (window.confirm("Delete this activity?"))
+                  void deleteActivity(activity.id)
+                    .then(() => {
+                      clearActivityListState();
+                      setLocation("/activities");
+                    })
+                    .catch((reason: Error) => setError(reason.message));
+              }}
+            >
+              Delete
+            </Button>
+          </>
+        }
+      />
       {error && <Alert severity="error">{error}</Alert>}
       <Card
         variant="outlined"
@@ -277,17 +288,13 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
         }}
       >
         <CardContent>
-          <Grid container spacing={2}>
+          <Grid container rowSpacing={2.5} columnSpacing={2}>
             {stats.map(([label, display]) => (
-              <Grid size={{ xs: 6, md: 3 }} key={label} sx={{ p: 1 }}>
+              <Grid size={{ xs: 6, md: 3 }} key={label}>
                 <Typography
                   variant="overline"
                   color="text.secondary"
-                  sx={{
-                    fontSize: ".67rem",
-                    fontWeight: 800,
-                    letterSpacing: ".07em",
-                  }}
+                  component="p"
                 >
                   {label}
                 </Typography>
@@ -306,7 +313,12 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
                     </Typography>
                   </Stack>
                 ) : (
-                  <Typography fontWeight={700}>{display}</Typography>
+                  <Typography
+                    fontWeight={700}
+                    sx={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {display}
+                  </Typography>
                 )}
               </Grid>
             ))}
@@ -316,12 +328,15 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
       <Card variant="outlined">
         <CardContent>
           <Stack spacing={2}>
-            <Stack direction="row" justifyContent="space-between">
-              <Typography variant="h5">How it felt</Typography>
-              <Button onClick={() => setEditing(!editing)}>
-                {editing ? "Cancel" : "Edit"}
-              </Button>
-            </Stack>
+            <SectionTitle
+              action={
+                <Button onClick={() => setEditing(!editing)}>
+                  {editing ? "Cancel" : "Edit"}
+                </Button>
+              }
+            >
+              How it felt
+            </SectionTitle>
             {editing ? (
               <Grid container spacing={2}>
                 <Grid size={{ xs: 6, sm: 3 }}>
@@ -419,7 +434,11 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
                   ["Weather", activity.weather_notes],
                 ].map(([label, display]) => (
                   <Grid size={{ xs: 12, sm: 6 }} key={String(label)}>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography
+                      variant="overline"
+                      color="text.secondary"
+                      component="p"
+                    >
                       {label}
                     </Typography>
                     <Typography sx={{ whiteSpace: "pre-wrap" }}>
@@ -433,18 +452,32 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
         </CardContent>
       </Card>
       <LapTable laps={activity.laps} sport={activity.sport} />
+      <TrackGoalSection activity={activity} />
       {heartRateResponse && (
         <Card variant="outlined">
           <CardContent>
-            <Typography variant="h5" gutterBottom>
+            <Typography variant="h5" component="h2" gutterBottom>
               Workload-adjusted heart-rate response
             </Typography>
-            <Typography>
+            <Typography
+              sx={{
+                fontSize: "1.25rem",
+                fontWeight: 750,
+                color: "primary.dark",
+              }}
+            >
               {heartRateResponse.eligible &&
               heartRateResponse.adjusted_change_bpm_per_hour != null
                 ? `${heartRateResponse.adjusted_change_bpm_per_hour.toFixed(1)} bpm/hour`
                 : `Not eligible${heartRateResponse.exclusion_reason ? `: ${heartRateResponse.exclusion_reason}` : ""}`}
             </Typography>
+            {heartRateResponse.eligible && (
+              <Typography variant="body2" color="text.secondary">
+                {responseInterval
+                  ? `90% interval: ${responseInterval[0].toFixed(1)} to ${responseInterval[1].toFixed(1)} bpm/hour (within-run noise only; treat as a lower bound on uncertainty)`
+                  : "No 90% interval: this result predates algorithm version 4."}
+              </Typography>
+            )}
             {heartRateResponse.eligible && (
               <Grid container spacing={2} sx={{ my: 1 }}>
                 <Grid size={{ xs: 6, sm: 3 }}>
@@ -489,8 +522,25 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
               {heartRateResponse.confidence
                 ? `${heartRateResponse.confidence} confidence | `
                 : ""}
+              {heartRateResponse.usable_duration_seconds != null
+                ? `${Math.round(heartRateResponse.usable_duration_seconds / 60)} min usable | `
+                : ""}
+              {heartRateResponse.stop_count
+                ? `${heartRateResponse.stop_count} stop${heartRateResponse.stop_count === 1 ? "" : "s"} (${Math.round((heartRateResponse.stopped_duration_seconds ?? 0) / 60)} min) | `
+                : ""}
               Algorithm version {heartRateResponse.algorithm_version}
             </Typography>
+            {isStale(
+              heartRateResponse,
+              CURRENT_HEART_RATE_RESPONSE_VERSION,
+            ) && (
+              <Alert severity="warning" sx={{ mt: 1 }}>
+                This result uses an older algorithm (version{" "}
+                {heartRateResponse.algorithm_version}). Use{" "}
+                <strong>Apply and recalculate</strong> below, or Recalculate HR
+                response on the Analytics page, to update it.
+              </Alert>
+            )}
             {heartRateResponse.interpretation && (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 {heartRateResponse.interpretation}
@@ -510,7 +560,7 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
                 onChange={(event) => setAnalysisStartMiles(event.target.value)}
                 slotProps={{ htmlInput: { min: 0, step: 0.1 } }}
                 helperText="Leaves the FIT data intact and only changes this analysis."
-                sx={{ minWidth: 280 }}
+                sx={{ minWidth: { sm: 280 } }}
               />
               <Button
                 variant="outlined"
@@ -526,7 +576,7 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
       {comparableRuns.length > 0 && (
         <Card variant="outlined">
           <CardContent>
-            <Typography variant="h5" gutterBottom>
+            <Typography variant="h5" component="h2" gutterBottom>
               Comparable runs
             </Typography>
             <Typography color="text.secondary" gutterBottom>
@@ -546,7 +596,9 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
                   }}
                 >
                   <Stack width="100%" spacing={0.5} alignItems="flex-start">
-                    <Typography fontWeight={800}>{run.local_date}</Typography>
+                    <Typography fontWeight={800}>
+                      {localDateLabel(run.local_date)}
+                    </Typography>
                     <Stack direction="row" spacing={2} flexWrap="wrap">
                       <Typography>
                         {run.distance_miles.toFixed(2)} mi
@@ -563,7 +615,7 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
                       </Typography>
                       {run.temperature_fahrenheit != null && (
                         <Typography>
-                          {run.temperature_fahrenheit.toFixed(0)} F
+                          {run.temperature_fahrenheit.toFixed(0)}°F
                         </Typography>
                       )}
                       {run.humidity_percent != null && (
@@ -590,7 +642,7 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
       {otherDerivedMetrics.length > 0 && (
         <Card variant="outlined">
           <CardContent>
-            <Typography variant="h5" gutterBottom>
+            <Typography variant="h5" component="h2" gutterBottom>
               Derived metrics
             </Typography>
             <Grid container spacing={2}>
@@ -609,15 +661,8 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
       <ActivityCharts
         samples={samples}
         sport={activity.sport}
-        analysisWindow={
-          heartRateResponse?.eligible &&
-          heartRateResponse.analysis_start_seconds != null &&
-          heartRateResponse.usable_duration_seconds != null
-            ? {
-                startSeconds: heartRateResponse.analysis_start_seconds,
-                durationSeconds: heartRateResponse.usable_duration_seconds,
-              }
-            : undefined
+        analysisRanges={
+          heartRateResponse ? analysisRangesOf(heartRateResponse) : undefined
         }
       />
     </Stack>

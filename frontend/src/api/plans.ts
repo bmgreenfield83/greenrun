@@ -16,12 +16,19 @@ export type PlanImportPreview = {
   } | null;
 };
 
+/** Structured "time at a distance" goal. */
+export type PlanGoalTarget = {
+  distance_meters: number;
+  target_time_seconds: number;
+};
+
 export type TrainingPlan = {
   id: string;
   name: string;
   description: string | null;
   primary_goal?: string | null;
   secondary_goal?: string | null;
+  goal_target?: PlanGoalTarget | null;
   status: string;
   start_date: string;
   end_date: string;
@@ -138,6 +145,20 @@ export async function updatePlanStatus(
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
+    }),
+  );
+}
+
+/** Sends the structured goal, or null to clear it. */
+export async function updatePlanGoal(
+  planId: string,
+  goalTarget: PlanGoalTarget | null,
+): Promise<TrainingPlan> {
+  return parse(
+    await fetch(`${apiBaseUrl}/plans/${planId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ goal_target: goalTarget }),
     }),
   );
 }

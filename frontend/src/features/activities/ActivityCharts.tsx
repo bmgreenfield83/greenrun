@@ -14,18 +14,32 @@ import {
 } from "recharts";
 
 import type { ActivitySample } from "../../api/activities";
+import type { SecondsRange } from "../analytics/heartRateResponse";
+import { SectionTitle } from "../../components/common/SectionTitle";
 import { formatPaceTick, getPaceChartDomain } from "./chartScale";
+
+// Shared axis/grid styling so every activity chart reads the same way.
+const axisTick = { fontSize: 12, fill: "#56666d" };
+const gridStroke = "#e4ebe9";
+const tooltipStyle = {
+  borderRadius: 10,
+  border: "1px solid #dce5e3",
+  boxShadow: "0 8px 24px rgba(20,54,61,.12)",
+  fontSize: 13,
+};
+const formatMinuteTick = (value: number) => `${Math.round(value)}`;
 
 type ActivityChartsProps = {
   samples: ActivitySample[];
   sport: string;
-  analysisWindow?: { startSeconds: number; durationSeconds: number };
+  /** Elapsed-time ranges included in the HR-response fit (shaded on every chart). */
+  analysisRanges?: SecondsRange[];
 };
 
 export const ActivityCharts = memo(function ActivityCharts({
   samples,
   sport,
-  analysisWindow,
+  analysisRanges = [],
 }: ActivityChartsProps) {
   const data = useMemo(
     () =>
@@ -53,9 +67,12 @@ export const ActivityCharts = memo(function ActivityCharts({
 
   if (!samples.length)
     return (
-      <Typography color="text.secondary">
-        No sample charts are available for this activity.
-      </Typography>
+      <Stack spacing={1.5}>
+        <SectionTitle>Charts</SectionTitle>
+        <Typography color="text.secondary">
+          No sample charts are available for this activity.
+        </Typography>
+      </Stack>
     );
   const usesPace = ["run", "walk", "hike"].includes(sport);
   const supportsRate = sport !== "strength";
@@ -121,21 +138,44 @@ export const ActivityCharts = memo(function ActivityCharts({
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h5">Charts</Typography>
+      <SectionTitle>Charts</SectionTitle>
       <Grid container spacing={2}>
         {charts.map(({ title, key, unit, color, reversed }) => (
           <Grid size={{ xs: 12, md: 6 }} key={key}>
             <Card variant="outlined">
               <CardContent>
-                <Typography variant="h6">{title}</Typography>
+                <Typography variant="h6" component="h3">
+                  {title}
+                </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Elapsed minutes &bull; {unit}
+                  {unit} by elapsed minutes
                 </Typography>
                 <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={data} syncId="activity">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#dce5e3" />
-                    <XAxis dataKey="minute" />
+                  <LineChart
+                    data={data}
+                    syncId="activity"
+                    margin={{ top: 12, right: 8, bottom: 0, left: -8 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke={gridStroke}
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="minute"
+                      type="number"
+                      domain={[0, "dataMax"]}
+                      tick={axisTick}
+                      tickFormatter={formatMinuteTick}
+                      tickLine={false}
+                      axisLine={{ stroke: gridStroke }}
+                      minTickGap={16}
+                    />
                     <YAxis
+                      width={48}
+                      tick={axisTick}
+                      tickLine={false}
+                      axisLine={false}
                       reversed={reversed}
                       domain={key === "pace" ? paceDomain : ["auto", "auto"]}
                       allowDataOverflow={key === "pace"}
@@ -144,6 +184,7 @@ export const ActivityCharts = memo(function ActivityCharts({
                       }
                     />
                     <Tooltip
+                      contentStyle={tooltipStyle}
                       labelFormatter={(value) => `${value} elapsed minutes`}
                       formatter={(value) => [
                         typeof value === "number"
@@ -152,19 +193,16 @@ export const ActivityCharts = memo(function ActivityCharts({
                         `${title} (${unit})`,
                       ]}
                     />
-                    {analysisWindow && (
+                    {analysisRanges.map((range) => (
                       <ReferenceArea
-                        x1={analysisWindow.startSeconds / 60}
-                        x2={
-                          (analysisWindow.startSeconds +
-                            analysisWindow.durationSeconds) /
-                          60
-                        }
+                        key={range.startSeconds}
+                        x1={range.startSeconds / 60}
+                        x2={range.endSeconds / 60}
                         fill="#1976d2"
-                        fillOpacity={0.07}
+                        fillOpacity={0.08}
                         strokeOpacity={0}
                       />
-                    )}
+                    ))}
                     <Line
                       type="monotone"
                       dataKey={key}
@@ -180,33 +218,70 @@ export const ActivityCharts = memo(function ActivityCharts({
           </Grid>
         ))}
       </Grid>
-      {analysisWindow && (
+      {analysisRanges.length > 0 && (
         <Typography variant="caption" color="text.secondary">
-          The lightly shaded region marks the samples used for workload-adjusted
-          heart-rate analysis.
+          The lightly shaded regions mark the samples used for workload-adjusted
+          heart-rate analysis
+          {analysisRanges.length > 1
+            ? "; unshaded gaps between them are stops."
+            : "."}
         </Typography>
       )}
       {supportsRate && scatter.length >= 5 && (
         <Card variant="outlined">
           <CardContent>
-            <Typography variant="h6">
+            <Typography variant="h6" component="h3">
               {usesPace ? "Pace" : "Speed"} versus heart rate
             </Typography>
             <Typography variant="body2" color="text.secondary">
               A transparent comparison of recorded samples, not a fitness score.
             </Typography>
             <ResponsiveContainer width="100%" height={260}>
-              <ScatterChart>
-                <CartesianGrid stroke="#dce5e3" />
-                <XAxis dataKey="heartRate" name="Heart rate" unit=" bpm" />
+              <ScatterChart margin={{ top: 12, right: 8, bottom: 8, left: 0 }}>
+                <CartesianGrid stroke={gridStroke} strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="heartRate"
+                  type="number"
+                  name="Heart rate"
+                  unit=" bpm"
+                  domain={["dataMin - 5", "dataMax + 5"]}
+                  tick={axisTick}
+                  tickLine={false}
+                  allowDecimals={false}
+                />
                 <YAxis
                   dataKey={usesPace ? "pace" : "speed"}
+                  type="number"
                   name={usesPace ? "Pace" : "Speed"}
-                  unit={usesPace ? " min/mi" : " mph"}
+                  unit={usesPace ? "" : " mph"}
                   reversed={usesPace}
+                  domain={usesPace ? paceDomain : ["auto", "auto"]}
+                  allowDataOverflow={usesPace}
+                  tickFormatter={usesPace ? formatPaceTick : undefined}
+                  tick={axisTick}
+                  tickLine={false}
+                  width={56}
+                  label={
+                    usesPace
+                      ? {
+                          value: "min/mi",
+                          angle: -90,
+                          position: "insideLeft",
+                          style: { fontSize: 12, fill: "#56666d" },
+                        }
+                      : undefined
+                  }
                 />
-                <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                <Scatter data={scatter} fill="#1976d2" />
+                <Tooltip
+                  cursor={{ strokeDasharray: "3 3" }}
+                  contentStyle={tooltipStyle}
+                  formatter={(value, name) =>
+                    name === "Pace" && typeof value === "number"
+                      ? [`${formatPaceTick(value)} /mi`, name]
+                      : [value, name]
+                  }
+                />
+                <Scatter data={scatter} fill="#1976d2" fillOpacity={0.45} />
               </ScatterChart>
             </ResponsiveContainer>
           </CardContent>
@@ -223,9 +298,12 @@ function activityChartsPropsAreEqual(
   return (
     previous.samples === next.samples &&
     previous.sport === next.sport &&
-    previous.analysisWindow?.startSeconds ===
-      next.analysisWindow?.startSeconds &&
-    previous.analysisWindow?.durationSeconds ===
-      next.analysisWindow?.durationSeconds
+    rangesKey(previous.analysisRanges) === rangesKey(next.analysisRanges)
   );
+}
+
+function rangesKey(ranges: SecondsRange[] | undefined) {
+  return (ranges ?? [])
+    .map((range) => `${range.startSeconds}-${range.endSeconds}`)
+    .join(",");
 }

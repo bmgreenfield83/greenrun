@@ -3,21 +3,32 @@ import EventRounded from "@mui/icons-material/EventRounded";
 import TrendingUpRounded from "@mui/icons-material/TrendingUpRounded";
 import {
   Alert,
-  Button,
   Card,
   CardContent,
   Grid,
-  LinearProgress,
+  Skeleton,
   Stack,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
-import { Link } from "wouter";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { listActivities, type Activity } from "../api/activities";
 import { getAnalytics, type AnalyticsSummary } from "../api/analytics";
 import { listPlans, listPlanSessions, type PlannedSession } from "../api/plans";
-import { duration, metersToMiles } from "../features/activities/format";
+import { LinkRow } from "../components/common/LinkRow";
+import { PageHeader } from "../components/common/PageHeader";
+import { SectionTitle } from "../components/common/SectionTitle";
+import {
+  activityType,
+  duration,
+  localDateLabel,
+  metersToMiles,
+} from "../features/activities/format";
+import {
+  isStale,
+  newestResults,
+} from "../features/analytics/heartRateResponse";
+import { TrainingSnapshot } from "../features/dashboard/TrainingSnapshot";
 import { SystemStatusCard } from "../features/health/SystemStatusCard";
 
 const today = () => {
@@ -27,19 +38,22 @@ const today = () => {
 
 const upcomingDate = (date: string) => {
   if (date === today()) return "Today";
-  const [year, month, day] = date.split("-").map(Number);
-  return new Intl.DateTimeFormat(undefined, {
+  return localDateLabel(date, {
     weekday: "long",
     month: "long",
     day: "numeric",
-  }).format(new Date(year, month - 1, day));
+  });
 };
+
+const shortDate = (date: string) =>
+  localDateLabel(date, { weekday: "short", month: "short", day: "numeric" });
 
 export function DashboardPage() {
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [upcoming, setUpcoming] = useState<PlannedSession[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void Promise.all([
@@ -65,200 +79,136 @@ export function DashboardPage() {
           );
         }
       })
-      .catch((reason: Error) => setError(reason.message));
+      .catch((reason: Error) => setError(reason.message))
+      .finally(() => setLoading(false));
   }, []);
 
-  const plan = analytics?.plan_progress;
-  const weekPercent = plan?.current_week_planned_miles
-    ? Math.min(
-        100,
-        (plan.current_week_completed_miles / plan.current_week_planned_miles) *
-          100,
-      )
-    : 0;
-  const drift = analytics?.heart_rate_response_history?.slice(0, 4) ?? [];
+  // History is oldest first; show the newest results.
+  const drift = newestResults(analytics?.heart_rate_response_history ?? [], 4);
 
   return (
-    <Stack spacing={4}>
-      <div>
-        <Typography variant="h4" gutterBottom>
-          Your training, clearly tracked.
-        </Typography>
-        <Typography color="text.secondary">
-          Your current week, upcoming workouts, and recent training at a glance.
-        </Typography>
-      </div>
+    <Stack spacing={3}>
+      <PageHeader
+        title="Your training, clearly tracked."
+        description="Your current week, upcoming workouts, and recent training at a glance."
+      />
       {error && <Alert severity="warning">{error}</Alert>}
 
-      <Grid container spacing={2}>
-        {analytics &&
-          [
-            ["Last 7 days", analytics.rolling_7_day_miles],
-            ["Last 28 days", analytics.rolling_28_day_miles],
-            ["Last 90 days", analytics.rolling_90_day_miles],
-          ].map(([label, miles]) => (
-            <Grid size={{ xs: 12, sm: 4 }} key={String(label)}>
-              <Card variant="outlined" sx={{ height: "100%" }}>
-                <CardContent>
-                  <Typography variant="overline" color="text.secondary">
-                    {label}
-                  </Typography>
-                  <Typography variant="h4" color="primary.dark">
-                    {Number(miles).toFixed(1)} mi
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-      </Grid>
-
-      {plan && (
-        <Card
-          variant="outlined"
-          sx={{ borderLeft: 5, borderLeftColor: "secondary.main" }}
-        >
-          <CardContent>
-            <Stack spacing={1.25}>
-              <Typography variant="overline" color="text.secondary">
-                Current week
-              </Typography>
-              <Typography variant="h5">{plan.plan_name}</Typography>
-              <Typography>
-                {plan.current_week_completed_miles.toFixed(1)} of{" "}
-                {plan.current_week_planned_miles.toFixed(1)} planned miles
-              </Typography>
-              <LinearProgress
-                variant="determinate"
-                value={weekPercent}
-                sx={{ height: 9, borderRadius: 5 }}
-              />
-              <Typography variant="body2" color="text.secondary">
-                {plan.completed_sessions} of {plan.total_sessions} plan sessions
-                completed overall
-              </Typography>
-            </Stack>
-          </CardContent>
-        </Card>
+      {(loading || analytics) && (
+        <TrainingSnapshot analytics={analytics} loading={loading} />
       )}
 
-      <Grid container spacing={2}>
+      <Grid container spacing={{ xs: 1.5, sm: 2 }}>
         <Grid size={{ xs: 12, lg: 6 }}>
-          <Card variant="outlined" sx={{ height: "100%" }}>
-            <CardContent>
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <EventRounded color="primary" />
-                  <Typography variant="h5">Upcoming workouts</Typography>
-                </Stack>
-                {upcoming.length ? (
-                  upcoming.map((session) => (
-                    <Button
-                      component={Link}
-                      href={`/calendar?date=${session.scheduled_date}`}
-                      key={session.id}
-                      sx={{
-                        justifyContent: "space-between",
-                        textTransform: "none",
-                      }}
-                    >
-                      <span>{session.title}</span>
-                      <span>{upcomingDate(session.scheduled_date)}</span>
-                    </Button>
-                  ))
-                ) : (
-                  <Typography color="text.secondary">
-                    No upcoming planned workouts.
-                  </Typography>
-                )}
-              </Stack>
-            </CardContent>
-          </Card>
+          <DashboardListCard
+            title="Upcoming workouts"
+            icon={<EventRounded color="primary" />}
+            loading={loading}
+            empty="No upcoming planned workouts."
+          >
+            {upcoming.map((session) => (
+              <LinkRow
+                href={`/calendar?date=${session.scheduled_date}`}
+                key={session.id}
+                primary={session.title}
+                trailing={upcomingDate(session.scheduled_date)}
+              />
+            ))}
+          </DashboardListCard>
         </Grid>
 
         <Grid size={{ xs: 12, lg: 6 }}>
-          <Card variant="outlined" sx={{ height: "100%" }}>
-            <CardContent>
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <CheckCircleRounded color="success" />
-                  <Typography variant="h5">Recent activities</Typography>
-                </Stack>
-                {activities.length ? (
-                  activities.map((activity) => (
-                    <Button
-                      component={Link}
-                      href={`/activities/${activity.id}`}
-                      key={activity.id}
-                      sx={{
-                        justifyContent: "space-between",
-                        textTransform: "none",
-                      }}
-                    >
-                      <span>
-                        {activity.category
-                          ? `${activity.category.replaceAll("_", " ")} run`
-                          : activity.sport}
-                      </span>
-                      <span>
-                        {metersToMiles(activity.distance_meters)} ·{" "}
-                        {duration(
-                          activity.moving_time_seconds ??
-                            activity.elapsed_time_seconds,
-                        )}
-                      </span>
-                    </Button>
-                  ))
-                ) : (
-                  <Typography color="text.secondary">
-                    No completed activities yet.
-                  </Typography>
-                )}
-              </Stack>
-            </CardContent>
-          </Card>
+          <DashboardListCard
+            title="Recent activities"
+            icon={<CheckCircleRounded color="success" />}
+            loading={loading}
+            empty="No completed activities yet."
+          >
+            {activities.map((activity) => (
+              <LinkRow
+                href={`/activities/${activity.id}`}
+                key={activity.id}
+                primary={activityType(activity)}
+                secondary={shortDate(activity.local_date)}
+                trailing={`${metersToMiles(activity.distance_meters)} · ${duration(
+                  activity.moving_time_seconds ?? activity.elapsed_time_seconds,
+                )}`}
+              />
+            ))}
+          </DashboardListCard>
         </Grid>
 
         <Grid size={{ xs: 12, lg: 8 }}>
-          <Card variant="outlined" sx={{ height: "100%" }}>
-            <CardContent>
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <TrendingUpRounded color="secondary" />
-                  <Typography variant="h5">
-                    Recent adjusted HR response
-                  </Typography>
-                </Stack>
-                {drift.length ? (
-                  drift.map((result) => (
-                    <Button
-                      component={Link}
-                      href={`/activities/${result.activity_id}`}
-                      key={result.activity_id}
-                      sx={{
-                        justifyContent: "space-between",
-                        textTransform: "none",
-                      }}
-                    >
-                      <span>{result.local_date}</span>
-                      <strong>
-                        {result.adjusted_change_bpm_per_hour?.toFixed(1)} bpm/hr
-                        · {result.confidence} confidence
-                      </strong>
-                    </Button>
-                  ))
-                ) : (
-                  <Typography color="text.secondary">
-                    No qualifying heart-rate response results yet.
-                  </Typography>
-                )}
-              </Stack>
-            </CardContent>
-          </Card>
+          <DashboardListCard
+            title="Recent adjusted HR response"
+            icon={<TrendingUpRounded color="secondary" />}
+            loading={loading}
+            empty="No qualifying heart-rate response results yet."
+          >
+            {drift.map((result) => (
+              <LinkRow
+                href={`/activities/${result.activity_id}`}
+                key={result.activity_id}
+                primary={shortDate(result.local_date)}
+                secondary={
+                  [
+                    result.confidence && `${result.confidence} confidence`,
+                    analytics &&
+                      isStale(
+                        result,
+                        analytics.heart_rate_response_algorithm_version,
+                      ) &&
+                      "needs recalculation",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || undefined
+                }
+                trailing={`${result.adjusted_change_bpm_per_hour?.toFixed(1) ?? "—"} bpm/hr`}
+              />
+            ))}
+          </DashboardListCard>
         </Grid>
         <Grid size={{ xs: 12, lg: 4 }}>
           <SystemStatusCard />
         </Grid>
       </Grid>
     </Stack>
+  );
+}
+
+function DashboardListCard({
+  title,
+  icon,
+  loading,
+  empty,
+  children,
+}: {
+  title: string;
+  icon: ReactNode;
+  loading: boolean;
+  empty: string;
+  children: ReactNode[];
+}) {
+  return (
+    <Card variant="outlined" sx={{ height: "100%" }}>
+      <CardContent>
+        <Stack spacing={1.5}>
+          <SectionTitle icon={icon}>{title}</SectionTitle>
+          {loading ? (
+            <Stack spacing={1} aria-busy="true" aria-label={`Loading ${title}`}>
+              {[0, 1, 2].map((key) => (
+                <Skeleton key={key} variant="rounded" height={44} />
+              ))}
+            </Stack>
+          ) : children.length ? (
+            <Stack spacing={0.25} sx={{ mx: -1.5 }}>
+              {children}
+            </Stack>
+          ) : (
+            <Typography color="text.secondary">{empty}</Typography>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }
