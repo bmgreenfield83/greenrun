@@ -8,6 +8,12 @@ Owner decisions and critiques recorded 2026-09-29, for the next design work. Not
 - The current look is **not** something to strictly adhere to. The whole app can get a facelift.
 - Deferred by the owner for now; do it after the analytics revision, and design it together with the
   pixel-art backgrounds below so the two fit each other.
+- Heart-rate zone colors: currently all shades of blue, which makes them hard to read. Use the familiar
+  scale the owner is used to: Z1 blue, Z2 green, Z3 yellow, Z4 orange, Z5 red, everywhere zones appear
+  (zone table, weekly time-in-zone bars, easy-run distribution).
+- Suggested order (owner agreed to start with a proposal): 1) short design proposal (facelift direction,
+  palette/layout concept, scene sketches) for approval; 2) facelift; 3) pixel-art scenes, each phase verified
+  with screenshots.
 
 ## Pixel-art backgrounds
 
