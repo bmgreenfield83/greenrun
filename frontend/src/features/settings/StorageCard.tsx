@@ -27,7 +27,9 @@ export function StorageCard() {
       <CardContent>
         <Stack direction="row" spacing={1} alignItems="center" mb={2}>
           <StorageRounded color="primary" />
-          <Typography variant="h6">Database storage</Typography>
+          <Typography variant="h5" component="h2">
+            Database storage
+          </Typography>
         </Stack>
         {query.isError ? (
           <Alert severity="warning">
@@ -41,6 +43,7 @@ export function StorageCard() {
         ) : (
           <Stack spacing={1.5}>
             <LinearProgress
+              aria-label="Database storage used"
               variant={query.data ? "determinate" : "indeterminate"}
               value={Math.min(query.data?.usage_percent ?? 0, 100)}
               color={

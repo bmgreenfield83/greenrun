@@ -38,18 +38,52 @@ const navigation = [
   { label: "Settings", path: "/settings", icon: <SettingsRounded /> },
 ];
 
+const isActivePath = (location: string, path: string) =>
+  path === "/"
+    ? location === "/"
+    : location === path || location.startsWith(`${path}/`);
+
+const headerFocusRing = {
+  "&.Mui-focusVisible, &:focus-visible": {
+    outline: "2px solid #fff",
+    outlineOffset: 2,
+    boxShadow: "none",
+  },
+};
+
 export function AppShell({ children }: PropsWithChildren) {
   const [location] = useLocation();
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
 
   return (
     <Box sx={{ minHeight: "100vh" }}>
+      <Box
+        component="a"
+        href="#main-content"
+        sx={{
+          position: "absolute",
+          left: 16,
+          top: -64,
+          zIndex: (theme) => theme.zIndex.appBar + 1,
+          px: 2,
+          py: 1,
+          borderRadius: 2,
+          bgcolor: "background.paper",
+          color: "primary.dark",
+          fontWeight: 700,
+          textDecoration: "none",
+          boxShadow: 3,
+          "&:focus": { top: 12 },
+        }}
+      >
+        Skip to content
+      </Box>
       <AppBar
         position="sticky"
         elevation={0}
         sx={{ borderBottom: 1, borderColor: "rgba(255,255,255,.12)" }}
       >
-        <Toolbar sx={{ gap: 2, minHeight: 68 }}>
+        <Toolbar sx={{ gap: 2, minHeight: { xs: 60, sm: 68 } }}>
           <Stack
             direction="row"
             alignItems="center"
@@ -71,6 +105,10 @@ export function AppShell({ children }: PropsWithChildren) {
                 textDecoration: "none",
                 transition: "background-color 150ms ease",
                 "&:hover": { bgcolor: "rgba(255,255,255,.22)" },
+                "&:focus-visible": {
+                  outline: "2px solid #fff",
+                  outlineOffset: 2,
+                },
               }}
             >
               <DirectionsRunRounded />
@@ -92,25 +130,37 @@ export function AppShell({ children }: PropsWithChildren) {
               "&::-webkit-scrollbar": { display: "none" },
             }}
           >
-            {navigation.map(({ label, path, icon }) => (
-              <Button
-                key={path}
-                component={Link}
-                href={path}
-                color="inherit"
-                startIcon={icon}
-                sx={
-                  location === path
-                    ? {
-                        bgcolor: "rgba(255,255,255,.16)",
-                        boxShadow: "inset 0 -2px 0 rgba(255,255,255,.75)",
-                      }
-                    : { opacity: 0.78, "&:hover": { opacity: 1 } }
-                }
-              >
-                {label}
-              </Button>
-            ))}
+            {navigation.map(({ label, path, icon }) => {
+              const active = isActivePath(location, path);
+              return (
+                <Button
+                  key={path}
+                  component={Link}
+                  href={path}
+                  color="inherit"
+                  startIcon={icon}
+                  aria-current={active ? "page" : undefined}
+                  sx={{
+                    flexShrink: 0,
+                    ...headerFocusRing,
+                    ...(active
+                      ? {
+                          bgcolor: "rgba(255,255,255,.16)",
+                          boxShadow: "inset 0 -2px 0 rgba(255,255,255,.75)",
+                        }
+                      : {
+                          color: "rgba(255,255,255,.82)",
+                          "&:hover": {
+                            color: "#fff",
+                            bgcolor: "rgba(255,255,255,.08)",
+                          },
+                        }),
+                  }}
+                >
+                  {label}
+                </Button>
+              );
+            })}
           </Stack>
           <IconButton
             color="inherit"
@@ -120,7 +170,13 @@ export function AppShell({ children }: PropsWithChildren) {
             }
             aria-expanded={mobileNavigationOpen}
             onClick={() => setMobileNavigationOpen(true)}
-            sx={{ display: { xs: "inline-flex", lg: "none" }, flexShrink: 0 }}
+            sx={{
+              display: { xs: "inline-flex", lg: "none" },
+              flexShrink: 0,
+              width: 44,
+              height: 44,
+              ...headerFocusRing,
+            }}
           >
             <MenuRounded />
           </IconButton>
@@ -150,7 +206,7 @@ export function AppShell({ children }: PropsWithChildren) {
           <Divider />
           <List component="nav" aria-label="Mobile navigation" sx={{ p: 1.5 }}>
             {navigation.map(({ label, path, icon }) => {
-              const active = location === path;
+              const active = isActivePath(location, path);
               return (
                 <ListItemButton
                   key={path}
@@ -159,7 +215,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   selected={active}
                   aria-current={active ? "page" : undefined}
                   onClick={() => setMobileNavigationOpen(false)}
-                  sx={{ borderRadius: 2, mb: 0.5 }}
+                  sx={{ borderRadius: 2, mb: 0.5, minHeight: 48 }}
                 >
                   <ListItemIcon sx={{ minWidth: 42, color: "inherit" }}>
                     {icon}
@@ -174,7 +230,13 @@ export function AppShell({ children }: PropsWithChildren) {
       <Container
         maxWidth="xl"
         component="main"
-        sx={{ py: { xs: 3, md: 5 }, px: { xs: 2, sm: 3 } }}
+        id="main-content"
+        tabIndex={-1}
+        sx={{
+          py: { xs: 3, md: 5 },
+          px: { xs: 2, sm: 3 },
+          "&:focus": { outline: "none" },
+        }}
       >
         {children}
       </Container>

@@ -17,3 +17,35 @@ export const pace = (speedMps: number | null) => {
 
 export const speed = (speedMps: number | null) =>
   speedMps ? `${(speedMps * 2.23694).toFixed(1)} mph` : "Not recorded";
+
+const titleCase = (value: string) =>
+  value
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+
+/** Human-readable activity type, e.g. "Easy Run", "Track Run", "Bike". */
+export const activityType = (activity: {
+  sport: string;
+  category?: string | null;
+}) => {
+  if (activity.sport !== "run") return titleCase(activity.sport);
+  if (!activity.category || activity.category === "other") return "Run";
+  return `${titleCase(activity.category)} Run`;
+};
+
+/** Formats a YYYY-MM-DD local date without shifting it across time zones. */
+export const localDateLabel = (
+  localDate: string,
+  options: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  },
+) => {
+  if (!localDate) return "";
+  const [year, month, day] = localDate.split("-").map(Number);
+  if (!year || !month || !day) return localDate;
+  return new Intl.DateTimeFormat(undefined, options).format(
+    new Date(year, month - 1, day),
+  );
+};

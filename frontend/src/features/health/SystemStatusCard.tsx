@@ -28,7 +28,9 @@ export function SystemStatusCard() {
           alignItems="center"
           mb={2}
         >
-          <Typography variant="h6">System status</Typography>
+          <Typography variant="h5" component="h2">
+            System status
+          </Typography>
           {readiness.isLoading ? (
             <Skeleton width={92} />
           ) : readiness.isSuccess ? (

@@ -17,6 +17,7 @@ import {
 import { useRef, useState } from "react";
 import { Link } from "wouter";
 
+import { PageHeader } from "../components/common/PageHeader";
 import {
   confirmFitImport,
   previewFitImport,
@@ -141,16 +142,10 @@ export function FitImportPage() {
 
   return (
     <Stack spacing={3}>
-      <div>
-        <Typography variant="h4" gutterBottom>
-          Import Garmin FIT
-        </Typography>
-        <Typography color="text.secondary">
-          Add one or more FIT files. Straightforward activities save
-          automatically; only duplicates and possible planned-workout links
-          pause for review.
-        </Typography>
-      </div>
+      <PageHeader
+        title="Import Garmin FIT"
+        description="Add one or more FIT files. Straightforward activities save automatically; only duplicates and possible planned-workout links pause for review."
+      />
 
       <Card variant="outlined">
         <CardContent>

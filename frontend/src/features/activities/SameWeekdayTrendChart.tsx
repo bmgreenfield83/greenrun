@@ -133,6 +133,8 @@ export function SameWeekdayTrendChart({
             : `${value}`
       }
       width={metric === "pace" ? 62 : 54}
+      tick={{ fontSize: 12, fill: "#56666d" }}
+      tickLine={false}
     />
   );
   const series = (metric: Metric, id: "left" | "right") =>
@@ -185,7 +187,7 @@ export function SameWeekdayTrendChart({
     return (
       <Card variant="outlined">
         <CardContent>
-          <Typography variant="h5" gutterBottom>
+          <Typography variant="h5" component="h2" gutterBottom>
             Same-day trend
           </Typography>
           <Typography color="text.secondary">
@@ -201,7 +203,9 @@ export function SameWeekdayTrendChart({
       <CardContent>
         <Stack spacing={2}>
           <div>
-            <Typography variant="h5">Same-day trend</Typography>
+            <Typography variant="h5" component="h2">
+              Same-day trend
+            </Typography>
             <Typography color="text.secondary">
               This run and up to 12 earlier runs on the same weekday, across all
               run categories.
@@ -266,8 +270,16 @@ export function SameWeekdayTrendChart({
                 }}
                 onClick={selectPoint}
               >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="dateLabel" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#e4ebe9"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="dateLabel"
+                  tick={{ fontSize: 12, fill: "#56666d" }}
+                  tickLine={false}
+                />
                 {axis(primary, "left")}
                 {secondary !== "none" && axis(secondary, "right")}
                 <Tooltip

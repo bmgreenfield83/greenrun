@@ -21,6 +21,7 @@ import {
 import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 
+import { PageHeader } from "../components/common/PageHeader";
 import {
   attachActivity,
   detachActivity,
@@ -207,15 +208,10 @@ export function CalendarPage() {
 
   return (
     <Stack spacing={3}>
-      <div>
-        <Typography variant="h4" gutterBottom>
-          Training calendar
-        </Typography>
-        <Typography color="text.secondary">
-          Planned sessions stay on their historical dates while activities stay
-          on their actual dates.
-        </Typography>
-      </div>
+      <PageHeader
+        title="Training calendar"
+        description="Planned sessions stay on their historical dates while activities stay on their actual dates."
+      />
       {error && !selectedDate && <Alert severity="error">{error}</Alert>}
       <Stack
         direction={{ xs: "column", sm: "row" }}
@@ -275,6 +271,8 @@ export function CalendarPage() {
       <Card variant="outlined" sx={{ bgcolor: "rgba(255,255,255,.92)" }}>
         <CardContent
           sx={{
+            p: { xs: 1, sm: 3 },
+            "&:last-child": { pb: { xs: 1, sm: 3 } },
             "& .status-skipped": { opacity: 0.75 },
             "& .current-week-day": { bgcolor: "rgba(23,74,91,.035)" },
             "& .fc-day-today": { bgcolor: "rgba(23,74,91,.1)" },
@@ -285,6 +283,8 @@ export function CalendarPage() {
             initialView="dayGridMonth"
             initialDate={linkedDate ?? undefined}
             firstDay={1}
+            buttonText={{ today: "Today" }}
+            buttonHints={{ prev: "Previous month", next: "Next month" }}
             height="auto"
             dayMaxEvents={compact ? 2 : 4}
             moreLinkContent={(arg) => `+${arg.num} more`}

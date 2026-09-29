@@ -7,6 +7,7 @@ import {
   CardContent,
   Grid,
   MenuItem,
+  Skeleton,
   Stack,
   TextField,
   Typography,
@@ -16,8 +17,11 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 
 import { listActivities, type Activity } from "../api/activities";
+import { PageHeader } from "../components/common/PageHeader";
 import {
+  activityType,
   duration,
+  localDateLabel,
   metersToMiles,
   pace,
   speed,
@@ -30,26 +34,6 @@ import {
 
 const PAGE_SIZE = 25;
 const sports = ["run", "walk", "bike", "swim", "strength", "hike", "other"];
-
-const titleCase = (value: string) =>
-  value
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-
-const activityType = (activity: Activity) => {
-  if (activity.sport !== "run") return titleCase(activity.sport);
-  if (!activity.category || activity.category === "other") return "Run";
-  return `${titleCase(activity.category)} Run`;
-};
-
-const activityDate = (localDate: string) => {
-  const [year, month, day] = localDate.split("-").map(Number);
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(year, month - 1, day));
-};
 
 export function ActivitiesPage() {
   const initialState = useRef(getActivityListState()).current;
@@ -133,12 +117,10 @@ export function ActivitiesPage() {
 
   return (
     <Stack spacing={3}>
-      <div>
-        <Typography variant="h4">Activities</Typography>
-        <Typography color="text.secondary">
-          Browse imported training activities from newest to oldest.
-        </Typography>
-      </div>
+      <PageHeader
+        title="Activities"
+        description="Browse imported training activities from newest to oldest."
+      />
 
       <Card variant="outlined">
         <CardContent>
@@ -182,6 +164,8 @@ export function ActivitiesPage() {
             <Grid size={{ xs: 12, sm: 2 }}>
               <Button
                 fullWidth
+                variant="outlined"
+                sx={{ minHeight: 56 }}
                 startIcon={<FilterAltOffRounded />}
                 disabled={!filtered}
                 onClick={() => {
@@ -198,8 +182,8 @@ export function ActivitiesPage() {
       </Card>
 
       {error && <Alert severity="error">{error}</Alert>}
-      {!loading && !error && (
-        <Typography variant="body2" color="text.secondary">
+      {!loading && !error && activities.length > 0 && (
+        <Typography variant="body2" color="text.secondary" aria-live="polite">
           Showing {activities.length} of {total} activities
         </Typography>
       )}
@@ -207,21 +191,28 @@ export function ActivitiesPage() {
         <Card
           variant="outlined"
           key={group.date}
-          sx={{
-            overflow: "hidden",
-            transition: "transform 150ms ease, box-shadow 150ms ease",
-            "&:hover": {
-              transform: "translateY(-2px)",
-              boxShadow: "0 12px 32px rgba(20,54,61,.1)",
-            },
-          }}
+          component="section"
+          aria-label={localDateLabel(group.date)}
         >
           <Typography
-            variant="caption"
+            variant="overline"
             color="text.secondary"
-            sx={{ display: "block", px: 2, pt: 1.5, opacity: 0.78 }}
+            component="h2"
+            sx={{
+              display: "block",
+              px: { xs: 2, sm: 3 },
+              py: 0.75,
+              bgcolor: "#f7faf9",
+              borderBottom: 1,
+              borderColor: "divider",
+            }}
           >
-            {activityDate(group.date)}
+            {localDateLabel(group.date, {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
           </Typography>
           {group.activities.map((activity, index) => (
             <CardActionArea
@@ -236,46 +227,53 @@ export function ActivitiesPage() {
               }}
             >
               <CardContent>
-                <Stack direction="row" spacing={0.75} alignItems="center">
-                  {activity.planned_session_id && (
-                    <Stack
-                      direction="row"
-                      spacing={0.4}
-                      alignItems="center"
-                      sx={{ color: "success.main" }}
-                    >
-                      <CheckCircleRounded sx={{ fontSize: 17 }} />
-                      <Typography variant="body2" fontWeight={700}>
-                        Planned workout completed
-                      </Typography>
-                    </Stack>
-                  )}
-                </Stack>
-                <Typography variant="h6" sx={{ mt: 0.35 }}>
-                  {activityType(activity)}
-                </Typography>
-                <Typography
-                  fontWeight={700}
-                  color="primary.dark"
-                  sx={{ mt: 0.6 }}
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  alignItems={{ xs: "flex-start", sm: "center" }}
+                  gap={{ xs: 0.5, sm: 2 }}
                 >
-                  {[
-                    activity.distance_meters !== null
-                      ? metersToMiles(activity.distance_meters)
-                      : null,
-                    duration(
-                      activity.moving_time_seconds ??
-                        activity.elapsed_time_seconds,
-                    ),
-                    ["run", "walk", "hike"].includes(activity.sport)
-                      ? pace(activity.summary.average_speed_mps ?? null)
-                      : activity.sport === "bike"
-                        ? speed(activity.summary.average_speed_mps ?? null)
+                  <div>
+                    <Typography variant="h6" component="h3">
+                      {activityType(activity)}
+                    </Typography>
+                    {activity.planned_session_id && (
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        alignItems="center"
+                        sx={{ color: "success.main", mt: 0.25 }}
+                      >
+                        <CheckCircleRounded sx={{ fontSize: 17 }} />
+                        <Typography variant="body2" fontWeight={700}>
+                          Planned workout completed
+                        </Typography>
+                      </Stack>
+                    )}
+                  </div>
+                  <Typography
+                    fontWeight={700}
+                    color="primary.dark"
+                    sx={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {[
+                      activity.distance_meters !== null
+                        ? metersToMiles(activity.distance_meters)
                         : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" • ")}
-                </Typography>
+                      duration(
+                        activity.moving_time_seconds ??
+                          activity.elapsed_time_seconds,
+                      ),
+                      ["run", "walk", "hike"].includes(activity.sport)
+                        ? pace(activity.summary.average_speed_mps ?? null)
+                        : activity.sport === "bike"
+                          ? speed(activity.summary.average_speed_mps ?? null)
+                          : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </Typography>
+                </Stack>
               </CardContent>
             </CardActionArea>
           ))}
@@ -298,11 +296,17 @@ export function ActivitiesPage() {
         </Card>
       )}
       {loading && (
-        <Typography color="text.secondary">
-          {activities.length
-            ? "Loading more activities..."
-            : "Loading activities..."}
-        </Typography>
+        <Stack spacing={1.5} aria-busy="true">
+          <Typography variant="body2" color="text.secondary" role="status">
+            {activities.length
+              ? "Loading more activities..."
+              : "Loading activities..."}
+          </Typography>
+          {!activities.length &&
+            [0, 1, 2].map((key) => (
+              <Skeleton key={key} variant="rounded" height={96} />
+            ))}
+        </Stack>
       )}
       {activities.length < total && !loading && (
         <Button

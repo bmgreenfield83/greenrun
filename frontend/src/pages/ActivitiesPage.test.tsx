@@ -54,7 +54,7 @@ it("loads additional activity pages without hiding older records", async () => {
 
   expect(await screen.findByText("Track Run")).toBeInTheDocument();
   expect(screen.getByText("Showing 26 of 26 activities")).toBeInTheDocument();
-  expect(screen.getAllByText("Aug 5, 2026")).toHaveLength(1);
+  expect(screen.getAllByText(/Aug 5, 2026/)).toHaveLength(1);
   expect(fetchMock.mock.calls[1][0]).toContain("skip=25&limit=25");
 });
 
