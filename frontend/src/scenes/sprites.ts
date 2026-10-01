@@ -301,18 +301,6 @@ export function dog(
   p.px(x + 2 - f, y - 2, 1, 2, dark);
 }
 
-export function heron(p: Painter, x: number, y: number, frame: number) {
-  const grey = "#8d9aa6",
-    dark = "#4c5660";
-  p.px(x, y - 4, 1, 4, dark);
-  p.px(x + 2, y - 4, 1, 4, dark);
-  p.px(x - 2, y - 9, 6, 5, grey);
-  p.px(x + 3, y - 14 + (frame % 2), 1, 6, grey);
-  p.px(x + 3, y - 15 + (frame % 2), 3, 2, grey);
-  p.px(x + 6, y - 14 + (frame % 2), 3, 1, "#d9a23b");
-  p.px(x - 3, y - 8, 3, 2, dark);
-}
-
 export function goose(p: Painter, x: number, y: number, frame: number) {
   p.px(x - 2, y, 5, 2, "#5d5146");
   p.px(x + 3, y - 1, 3, 1, "#1b1b1b");

@@ -124,11 +124,21 @@ export function painter(ctx: CanvasRenderingContext2D, C: Palette) {
     c: string,
     ring = false,
   ) => {
-    for (let y = -ry; y <= ry; y++)
-      for (let x = -rx; x <= rx; x++) {
-        const d = (x * x) / (rx * rx || 1) + (y * y) / (ry * ry || 1);
-        if (ring ? d <= 1 && d > 0.62 : d <= 1) px(cx + x, cy + y, 1, 1, c);
+    const dist = (x: number, y: number) =>
+      (x * x) / (rx * rx || 1) + (y * y) / (ry * ry || 1);
+    for (let y = -ry; y <= ry; y++) {
+      if (ring) {
+        for (let x = -rx; x <= rx; x++) {
+          const d = dist(x, y);
+          if (d <= 1 && d > 0.62) px(cx + x, cy + y, 1, 1, c);
+        }
+        continue;
       }
+      // A filled row is one symmetric run, so draw it with a single rect instead of pixel by pixel.
+      let half = rx;
+      while (half >= 0 && dist(half, y) > 1) half--;
+      if (half >= 0) px(cx - half, cy + y, half * 2 + 1, 1, c);
+    }
   };
   const ray = (
     cx: number,

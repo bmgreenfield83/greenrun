@@ -32,6 +32,15 @@ describe("application shell", () => {
       "trail",
     );
 
+    // The scene toggle hides everything but the background, then brings it back.
+    const toggle = screen.getByRole("button", { name: "Hide UI" });
+    fireEvent.click(toggle);
+    expect(screen.getByTestId("app-ui")).not.toBeVisible();
+    expect(toggle).toHaveAccessibleName("Show UI");
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(toggle);
+    expect(screen.getByTestId("app-ui")).toBeVisible();
+
     // Desktop header lists every destination; the current page is marked.
     const primary = screen.getByRole("navigation", {
       name: "Primary navigation",

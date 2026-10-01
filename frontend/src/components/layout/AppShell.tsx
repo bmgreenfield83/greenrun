@@ -1,4 +1,6 @@
 import DirectionsRunRounded from "@mui/icons-material/DirectionsRunRounded";
+import VisibilityOffRounded from "@mui/icons-material/VisibilityOffRounded";
+import VisibilityRounded from "@mui/icons-material/VisibilityRounded";
 import {
   alpha,
   AppBar,
@@ -8,7 +10,7 @@ import {
   Stack,
   Toolbar,
 } from "@mui/material";
-import type { PropsWithChildren } from "react";
+import { useState, type PropsWithChildren } from "react";
 import { Link, useLocation } from "wouter";
 
 import { bottomBarHeight, colors, pixelFont } from "../../app/tokens";
@@ -123,121 +125,181 @@ function Wordmark() {
   );
 }
 
+// Bottom-right toggle that hides everything but the scene, sitting above the phone tab bar when it shows.
+function SceneToggle({
+  hidden,
+  onToggle,
+}: {
+  hidden: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <Button
+      onClick={onToggle}
+      aria-pressed={hidden}
+      startIcon={
+        hidden ? (
+          <VisibilityRounded fontSize="small" />
+        ) : (
+          <VisibilityOffRounded fontSize="small" />
+        )
+      }
+      sx={{
+        position: "fixed",
+        right: 16,
+        bottom: hidden
+          ? "calc(16px + env(safe-area-inset-bottom))"
+          : {
+              xs: `calc(${bottomBarHeight + 12}px + env(safe-area-inset-bottom))`,
+              sm: 16,
+            },
+        zIndex: (theme) => theme.zIndex.appBar + 1,
+        minHeight: 36,
+        px: 1.25,
+        borderRadius: "4px",
+        fontSize: "0.85rem",
+        color: colors.cream,
+        bgcolor: alpha(colors.forest, hidden ? 0.6 : 0.88),
+        border: `2px solid ${colors.forestDark}`,
+        boxShadow: `2px 2px 0 ${colors.shadow}`,
+        "&:hover": { bgcolor: colors.forest },
+        "&.Mui-focusVisible, &:focus-visible": {
+          outline: `3px solid ${colors.orange}`,
+          outlineOffset: 1,
+        },
+      }}
+    >
+      {hidden ? "Show UI" : "Hide UI"}
+    </Button>
+  );
+}
+
 export function AppShell({ children }: PropsWithChildren) {
   const [location] = useLocation();
+  const [uiHidden, setUiHidden] = useState(false);
 
   return (
     <Box sx={{ minHeight: "100vh" }}>
       <SceneBackground path={location} />
+      <SceneToggle
+        hidden={uiHidden}
+        onToggle={() => setUiHidden((hidden) => !hidden)}
+      />
+      {/* Hidden rather than unmounted, so pages keep their state while the scene is on show. */}
       <Box
-        component="a"
-        href="#main-content"
-        sx={{
-          position: "absolute",
-          left: 16,
-          top: -64,
-          zIndex: (theme) => theme.zIndex.appBar + 1,
-          px: 2,
-          py: 1,
-          borderRadius: "4px",
-          border: `2px solid ${colors.border}`,
-          bgcolor: "background.paper",
-          color: "primary.dark",
-          fontWeight: 700,
-          textDecoration: "none",
-          boxShadow: `3px 3px 0 ${colors.shadow}`,
-          "&:focus": { top: 10 },
-        }}
+        data-testid="app-ui"
+        sx={{ display: uiHidden ? "none" : "contents" }}
       >
-        Skip to content
-      </Box>
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          bgcolor: alpha(colors.forest, 0.88),
-          backdropFilter: "blur(10px) saturate(1.2)",
-          borderBottom: `2px solid ${colors.forestDark}`,
-          color: colors.cream,
-        }}
-      >
-        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-          <Toolbar
-            disableGutters
-            sx={{ gap: 2, minHeight: { xs: 52, sm: 56 } }}
-          >
-            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-              <Wordmark />
-            </Box>
-            {/* Desktop: every destination inline. */}
-            <Stack
-              direction="row"
-              spacing={0.5}
-              component="nav"
-              aria-label="Primary navigation"
-              sx={{ display: { xs: "none", lg: "flex" } }}
+        <Box
+          component="a"
+          href="#main-content"
+          sx={{
+            position: "absolute",
+            left: 16,
+            top: -64,
+            zIndex: (theme) => theme.zIndex.appBar + 1,
+            px: 2,
+            py: 1,
+            borderRadius: "4px",
+            border: `2px solid ${colors.border}`,
+            bgcolor: "background.paper",
+            color: "primary.dark",
+            fontWeight: 700,
+            textDecoration: "none",
+            boxShadow: `3px 3px 0 ${colors.shadow}`,
+            "&:focus": { top: 10 },
+          }}
+        >
+          Skip to content
+        </Box>
+        <AppBar
+          position="sticky"
+          elevation={0}
+          sx={{
+            bgcolor: alpha(colors.forest, 0.88),
+            backdropFilter: "blur(10px) saturate(1.2)",
+            borderBottom: `2px solid ${colors.forestDark}`,
+            color: colors.cream,
+          }}
+        >
+          <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+            <Toolbar
+              disableGutters
+              sx={{ gap: 2, minHeight: { xs: 52, sm: 56 } }}
             >
-              {[...primaryNavigation, ...secondaryNavigation].map((item) => (
-                <HeaderLink
-                  key={item.path}
-                  item={item}
+              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                <Wordmark />
+              </Box>
+              {/* Desktop: every destination inline. */}
+              <Stack
+                direction="row"
+                spacing={0.5}
+                component="nav"
+                aria-label="Primary navigation"
+                sx={{ display: { xs: "none", lg: "flex" } }}
+              >
+                {[...primaryNavigation, ...secondaryNavigation].map((item) => (
+                  <HeaderLink
+                    key={item.path}
+                    item={item}
+                    location={location}
+                    showIcon={false}
+                  />
+                ))}
+              </Stack>
+              {/* Tablet: main five plus a More menu. */}
+              <Stack
+                direction="row"
+                spacing={0.5}
+                component="nav"
+                aria-label="Section navigation"
+                sx={{ display: { xs: "none", sm: "flex", lg: "none" } }}
+              >
+                {primaryNavigation.map((item) => (
+                  <HeaderLink
+                    key={item.path}
+                    item={item}
+                    location={location}
+                    showIcon={false}
+                  />
+                ))}
+                <MoreMenu
                   location={location}
-                  showIcon={false}
+                  placement="below"
+                  renderTrigger={({ triggerProps, icon, active }) => (
+                    <Button
+                      {...triggerProps}
+                      color="inherit"
+                      endIcon={icon}
+                      sx={headerButtonSx(active)}
+                    >
+                      More
+                    </Button>
+                  )}
                 />
-              ))}
-            </Stack>
-            {/* Tablet: main five plus a More menu. */}
-            <Stack
-              direction="row"
-              spacing={0.5}
-              component="nav"
-              aria-label="Section navigation"
-              sx={{ display: { xs: "none", sm: "flex", lg: "none" } }}
-            >
-              {primaryNavigation.map((item) => (
-                <HeaderLink
-                  key={item.path}
-                  item={item}
-                  location={location}
-                  showIcon={false}
-                />
-              ))}
-              <MoreMenu
-                location={location}
-                placement="below"
-                renderTrigger={({ triggerProps, icon, active }) => (
-                  <Button
-                    {...triggerProps}
-                    color="inherit"
-                    endIcon={icon}
-                    sx={headerButtonSx(active)}
-                  >
-                    More
-                  </Button>
-                )}
-              />
-            </Stack>
-          </Toolbar>
+              </Stack>
+            </Toolbar>
+          </Container>
+        </AppBar>
+        <Container
+          maxWidth="lg"
+          component="main"
+          id="main-content"
+          tabIndex={-1}
+          sx={{
+            pt: { xs: 2.5, md: 4 },
+            pb: {
+              xs: `calc(${bottomBarHeight + 28}px + env(safe-area-inset-bottom))`,
+              sm: 6,
+            },
+            px: { xs: 2, sm: 3 },
+            "&:focus": { outline: "none" },
+          }}
+        >
+          {children}
         </Container>
-      </AppBar>
-      <Container
-        maxWidth="lg"
-        component="main"
-        id="main-content"
-        tabIndex={-1}
-        sx={{
-          pt: { xs: 2.5, md: 4 },
-          pb: {
-            xs: `calc(${bottomBarHeight + 28}px + env(safe-area-inset-bottom))`,
-            sm: 6,
-          },
-          px: { xs: 2, sm: 3 },
-          "&:focus": { outline: "none" },
-        }}
-      >
-        {children}
-      </Container>
-      <BottomTabBar location={location} />
+        <BottomTabBar location={location} />
+      </Box>
     </Box>
   );
 }

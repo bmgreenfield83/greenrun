@@ -4,6 +4,7 @@ import { useEffect, useState, type RefObject } from "react";
 import type { SceneData, SceneDefinition } from "./types";
 
 const TICK_MS = 100;
+const RESIZE_SETTLE_MS = 150;
 
 export function useScene(
   canvas: RefObject<HTMLCanvasElement | null>,
@@ -19,11 +20,17 @@ export function useScene(
     const still =
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const resize = () => {
+    const rebuild = () => {
       instance.layout();
       instance.paint();
     };
-    resize();
+    rebuild();
+    // Rebuilding redraws every layer, so wait until the window stops changing size.
+    let pending = 0;
+    const resize = () => {
+      window.clearTimeout(pending);
+      pending = window.setTimeout(rebuild, RESIZE_SETTLE_MS);
+    };
     window.addEventListener("resize", resize);
     const timer = window.setInterval(
       () => {
@@ -35,6 +42,7 @@ export function useScene(
     );
     return () => {
       window.clearInterval(timer);
+      window.clearTimeout(pending);
       window.removeEventListener("resize", resize);
     };
   }, [canvas, scene, data]);

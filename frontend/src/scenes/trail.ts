@@ -11,7 +11,7 @@ import {
   sizeCanvas,
   type Painter,
 } from "./pixel";
-import { deer, dog, goose, heron, owner, stranger } from "./sprites";
+import { deer, dog, goose, owner, stranger } from "./sprites";
 import type { Gait, SceneDefinition } from "./types";
 
 const OUTLINE = "#1b2420";
@@ -80,6 +80,15 @@ interface Leaf {
   c: string;
   life: number;
 }
+// A tree or bush between the bank and the trail, pre-drawn once and placed by depth each frame.
+interface Prop {
+  x: number;
+  base: number;
+  k: number;
+  img: HTMLCanvasElement;
+  ax: number;
+  ay: number;
+}
 
 export const trail: SceneDefinition = {
   create(canvas, data) {
@@ -97,29 +106,48 @@ export const trail: SceneDefinition = {
       runnerX = 0;
     let far: HTMLCanvasElement | null = null,
       mid: HTMLCanvasElement | null = null,
-      woods: HTMLCanvasElement | null = null,
-      near: HTMLCanvasElement | null = null,
       path: HTMLCanvasElement | null = null;
     let skyCanvas: HTMLCanvasElement | null = null,
       markerKey = "",
       overlookX = 0,
-      heronX = 0,
-      deerX = 0;
+      deerX = 0,
+      deerBase = 0;
     let stars: [number, number][] = [],
       walkers: Walker[] = [],
-      leaves: Leaf[] = [];
-    let geese: { x: number; y: number } | null = null,
-      deerShown = false;
+      leaves: Leaf[] = [],
+      props: Prop[] = [];
+    let geese: { x: number; y: number } | null = null;
 
     const now = () => new Date();
-    const strip = (w: number, draw: (p: Painter) => void) => {
+    const sprite = (w: number, h: number, draw: (p: Painter) => void) => {
       const c = document.createElement("canvas");
       c.width = w;
-      c.height = H;
+      c.height = h;
       const x = context(c);
       if (x) draw(painter(x, { outline: OUTLINE }));
       return c;
     };
+    const strip = (w: number, draw: (p: Painter) => void) => sprite(w, H, draw);
+
+    // Between the bank and the trail, everything sits at its own depth: parallax runs from the bank's
+    // (that of the Overlook) to the trail's. Each depth repeats over the same stretch of scrolling as
+    // the Overlook, so the spur and its clearing in the trees line up at every depth.
+    const BANK_K = 0.35;
+    const depth = (y: number) =>
+      BANK_K +
+      (1 - BANK_K) * Math.max(0, Math.min(1, (y - bankY) / (pathY - bankY)));
+    const period = (k: number) => (P * k) / BANK_K;
+    const wrapX = (x: number, k: number) => {
+      const L = period(k);
+      let s = (((x - scroll * k) % L) + L) % L;
+      if (s > W + 40) s -= L;
+      return s;
+    };
+    // Where the spur crosses depth k, in that depth's own coordinates.
+    const spurAt = (k: number) =>
+      (runnerX + ((overlookX - runnerX) * k) / BANK_K) % period(k);
+    const spurHalf = (k: number) =>
+      Math.round(3 + (7 * (k - BANK_K)) / (1 - BANK_K));
 
     function tree(
       p: Painter,
@@ -169,16 +197,77 @@ export const trail: SceneDefinition = {
       }
     }
 
+    // South River Overlook: a stone plaza on the bank with a gazebo at each end and two benches (seen
+    // from behind) facing the river. The spur from the trail arrives at its front edge.
+    function overlook(p: Painter, ox: number) {
+      const stone = "#bfb39c",
+        joint = shade(stone, 0.8),
+        wood = "#8a6440",
+        dark = "#5e4229",
+        top = bankY - 2;
+      p.px(ox - 52, top, 104, 8, stone);
+      p.px(ox - 52, top, 104, 1, shade(stone, 1.1));
+      for (const y of [top + 3, top + 6]) p.px(ox - 52, y, 104, 1, joint);
+      for (let x = -50; x < 52; x += 6) {
+        p.px(ox + x, top + 1, 1, 2, joint);
+        p.px(ox + x + 3, top + 4, 1, 2, joint);
+      }
+      p.px(ox - 52, top + 7, 104, 1, shade(stone, 0.65));
+      for (const bx of [ox - 14, ox + 14]) {
+        p.px(bx - 5, top - 4, 10, 1, wood);
+        p.px(bx - 5, top - 2, 10, 1, wood);
+        p.px(bx - 5, top - 4, 1, 5, dark);
+        p.px(bx + 4, top - 4, 1, 5, dark);
+      }
+      const post = "#ece6d6",
+        roof = "#55606a",
+        base = top + 4;
+      for (const gx of [ox - 41, ox + 41]) {
+        p.px(gx - 10, base - 1, 20, 2, shade(stone, 0.85));
+        for (const dx of [-3, 2])
+          p.px(gx + dx, base - 13, 1, 12, shade(post, 0.75));
+        p.px(gx - 9, base - 6, 18, 1, shade(post, 0.85));
+        for (const dx of [-9, 8]) p.px(gx + dx, base - 13, 1, 12, post);
+        p.px(gx - 12, base - 14, 24, 1, shade(roof, 0.7));
+        for (let r = 1; r < 9; r++) {
+          const w = 12 - Math.round(r * 1.4);
+          p.px(gx - w, base - 14 - r, w * 2, 1, shade(roof, 1 + r * 0.03));
+        }
+        p.px(gx, base - 25, 1, 3, post);
+      }
+    }
+
     function buildStrips() {
       const month = now().getMonth(),
         colors = canopyFor(month),
         grass = grassFor(month);
       const rnd = seeded(7);
+      // Anything drawn near a strip's edge is drawn again one period over, so the strip tiles seamlessly.
+      const tiled = (x: number, reach: number, draw: (x: number) => void) => {
+        draw(x);
+        if (x < reach) draw(x + P);
+        if (x > P - reach) draw(x - P);
+      };
       far = strip(P, (p) => {
-        for (let x = 0; x < P; x++) {
-          const h =
-            6 + Math.round(Math.sin(x / 37) * 3 + Math.sin(x / 13) * 1.5);
-          p.px(x, riverY - h, 1, h, "#7d9c93");
+        // The far shore: low hills topped with a ragged line of treetops.
+        const shore = "#7d9c93",
+          wave = (n: number) => Math.max(1, Math.round(P / n / (2 * Math.PI))),
+          [a, b] = [wave(37), wave(13)],
+          hill = (x: number) =>
+            6 +
+            Math.round(
+              Math.sin((2 * Math.PI * a * x) / P) * 3 +
+                Math.sin((2 * Math.PI * b * x) / P) * 1.5,
+            );
+        for (let x = 0; x < P; x++)
+          p.px(x, riverY - hill(x), 1, hill(x), shore);
+        for (let x = 0; x < P; x += 3 + Math.floor(rnd() * 4)) {
+          const rx = 2 + Math.floor(rnd() * 2),
+            ry = 1 + Math.floor(rnd() * 2),
+            c = shade(shore, 0.86 + rnd() * 0.14);
+          tiled(x, 4, (tx) =>
+            p.ellipse(tx, riverY - hill(((tx % P) + P) % P), rx, ry, c),
+          );
         }
         p.px(0, riverY, P, bankY - riverY, "#4f7f99");
         p.px(0, riverY, P, 1, "#86b2c8");
@@ -186,78 +275,86 @@ export const trail: SceneDefinition = {
       mid = strip(P, (p) => {
         p.px(0, bankY, P, H - bankY, grass);
         p.px(0, bankY, P, 1, shade(grass, 1.15));
-        for (let x = 20; x < P; x += 14 + Math.floor(rnd() * 24)) {
-          if (Math.abs(x - overlookX) < 45) continue;
-          tree(
-            p,
-            x,
-            bankY + 4 + Math.floor(rnd() * 6),
-            22 + Math.floor(rnd() * 16),
-            rnd,
-            colors,
-            rnd() < 0.3,
-          );
-        }
-        // South River Overlook: a wooden deck with railing and a bench, jutting out over the bluff.
-        const ox = overlookX,
-          deck = bankY - 1,
-          wood = "#8a6440",
-          dark = "#5e4229";
-        for (const dx of [-26, -8, 10, 26]) p.px(ox + dx, deck, 2, 10, dark);
-        p.px(ox - 30, deck - 2, 60, 3, wood);
-        p.px(ox - 30, deck - 2, 60, 1, shade(wood, 1.2));
-        p.px(ox - 30, deck - 9, 60, 1, wood);
-        for (let dx = -30; dx <= 28; dx += 6)
-          p.px(ox + dx, deck - 9, 1, 7, dark);
-        p.px(ox - 10, deck - 5, 12, 1, dark);
-        p.px(ox - 9, deck - 4, 1, 2, dark);
-        p.px(ox, deck - 4, 1, 2, dark);
-        p.px(ox + 34, deck - 12, 1, 12, dark);
-        p.box(ox + 20, deck - 20, 33, 7, "#3e5c3a");
-        p.text("OVERLOOK", ox + 22, deck - 19, "#e8e0c8");
+        // Two rows of trees along the bank, the back row smaller; the Overlook keeps its clearing.
+        for (const [lo, spread, hMin, hRange] of [
+          [1, 3, 16, 10],
+          [5, 6, 22, 16],
+        ])
+          for (
+            let x = 6 + Math.floor(rnd() * 8);
+            x < P - 6;
+            x += 6 + Math.floor(rnd() * 11)
+          ) {
+            const base = bankY + lo + Math.floor(rnd() * spread),
+              h = hMin + Math.floor(rnd() * hRange),
+              pine = rnd() < 0.3,
+              seed = Math.floor(rnd() * 1e9);
+            if (Math.abs(x - overlookX) < 62) continue;
+            tiled(x, h, (tx) =>
+              tree(p, tx, base, h, seeded(seed), colors, pine),
+            );
+          }
+        overlook(p, overlookX);
       });
-      // The woods between the river bank and the path: nearer trees stand lower and grow taller.
-      woods = strip(P, (p) => {
-        const trees: [number, number][] = [];
-        for (let k = 0; k < P / 9; k++)
-          trees.push([
-            Math.floor(rnd() * P),
+      // Between the bank and the trail: woods (nearer trees stand lower and grow taller), a row of bushes
+      // along the trail's edge, and a few big trees right beside it. None stand on the spur.
+      props = [];
+      const place = (
+        x: number,
+        base: number,
+        hw: number,
+        h: number,
+        draw: (p: Painter, cx: number, cy: number) => void,
+      ) => {
+        const k = depth(base),
+          L = period(k),
+          gap = Math.abs(x - spurAt(k));
+        if (Math.min(gap, L - gap) < spurHalf(k) + hw * 0.5 + 2) return;
+        const img = sprite(hw * 2 + 2, h + 12, (p) => draw(p, hw + 1, h + 9));
+        props.push({ x, base, k, img, ax: hw + 1, ay: h + 9 });
+      };
+      const woodsCount = Math.round(P * 0.28);
+      for (let n = 0; n < woodsCount; n++) {
+        const base =
             bankY + 14 + Math.floor(rnd() * Math.max(1, pathY - bankY - 24)),
-          ]);
-        trees.sort((a, b) => a[1] - b[1]);
-        for (const [x, base] of trees) {
-          const h = Math.max(
-            16,
-            Math.min(56, Math.round((base - bankY) * 0.95)),
-          );
-          p.ellipse(x, base, 5, 2, shade(grass, 0.85));
-          tree(p, x, base, h, rnd, colors, rnd() < 0.3);
-        }
-        for (let x = 0; x < P; x += 6 + Math.floor(rnd() * 10))
-          p.ellipse(
-            x,
-            pathY - 5,
-            3 + Math.floor(rnd() * 3),
-            2,
-            shade(grass, 0.8 + rnd() * 0.25),
-          );
-      });
-      near = strip(P, (p) => {
-        for (
-          let x = 60 + Math.floor(rnd() * 60);
-          x < P - 30;
-          x += 110 + Math.floor(rnd() * 90)
-        )
-          tree(
-            p,
-            x,
-            pathY - 1,
-            48 + Math.floor(rnd() * 28),
-            rnd,
-            colors,
-            rnd() < 0.25,
-          );
-      });
+          h = Math.max(16, Math.min(56, Math.round((base - bankY) * 0.95))),
+          pine = rnd() < 0.3,
+          seed = Math.floor(rnd() * 1e9);
+        place(
+          Math.floor(rnd() * period(depth(base))),
+          base,
+          Math.ceil(h * 0.5) + 5,
+          h,
+          (p, cx, cy) => {
+            p.ellipse(cx, cy, 5, 2, shade(grass, 0.85));
+            tree(p, cx, cy, h, seeded(seed), colors, pine);
+          },
+        );
+      }
+      const edgeK = depth(pathY - 5);
+      for (let x = 0; x < period(edgeK); x += 6 + Math.floor(rnd() * 10)) {
+        const rx = 3 + Math.floor(rnd() * 3),
+          c = shade(grass, 0.8 + rnd() * 0.25);
+        place(x, pathY - 5, rx, 2, (p, cx, cy) => p.ellipse(cx, cy, rx, 2, c));
+      }
+      const nearK = depth(pathY - 1);
+      for (
+        let x = 60 + Math.floor(rnd() * 60);
+        x < period(nearK) - 30;
+        x += 110 + Math.floor(rnd() * 90)
+      ) {
+        const h = 48 + Math.floor(rnd() * 28),
+          pine = rnd() < 0.25,
+          seed = Math.floor(rnd() * 1e9);
+        place(x, pathY - 1, Math.ceil(h * 0.5) + 2, h, (p, cx, cy) =>
+          tree(p, cx, cy, h, seeded(seed), colors, pine),
+        );
+      }
+      props.sort((a, b) => a.base - b.base);
+      // The deer browses just inside the woods, as far from the spur as the woods allow.
+      deerBase = pathY - 14;
+      const deerK = depth(deerBase);
+      deerX = (spurAt(deerK) + period(deerK) / 2) % period(deerK);
       markerKey = "";
     }
 
@@ -345,6 +442,38 @@ export const trail: SceneDefinition = {
       if (x > W + 40) x -= P;
       return x;
     };
+    // The paved spur from the trail to the Overlook's front edge, one row per depth, so it bends with
+    // the parallax and meets the trail right where the owner stands on a rest day.
+    function spur(p: Painter, top: number, bottom: number) {
+      const ox = screenX(overlookX, BANK_K),
+        verge = shade(grassFor(now().getMonth()), 0.75);
+      for (let y = top; y < bottom; y++) {
+        const k = depth(y),
+          x = Math.round(runnerX + ((ox - runnerX) * k) / BANK_K),
+          w = spurHalf(k);
+        if (x + w < -2 || x - w > W + 2) continue;
+        p.px(x - w - 1, y, w * 2 + 2, 1, verge);
+        p.px(x - w, y, w * 2, 1, "#6f7275");
+      }
+    }
+    function drawProps(p: Painter) {
+      let deerDrawn = false;
+      for (const prop of props) {
+        if (!deerDrawn && prop.base > deerBase) {
+          drawDeer(p);
+          deerDrawn = true;
+        }
+        const x = wrapX(prop.x, prop.k);
+        if (x + prop.ax < 0 || x - prop.ax > W) continue;
+        p.ctx.drawImage(prop.img, Math.round(x) - prop.ax, prop.base - prop.ay);
+      }
+      if (!deerDrawn) drawDeer(p);
+    }
+    function drawDeer(p: Painter) {
+      const x = wrapX(deerX, depth(deerBase));
+      if (x > -12 && x < W + 12)
+        deer(p, Math.round(x), deerBase, -1, (t >> 5) % 3 !== 0);
+    }
     const blit = (c: HTMLCanvasElement | null, k: number) => {
       if (!c) return;
       const off = (((scroll * k) % P) + P) % P;
@@ -364,8 +493,6 @@ export const trail: SceneDefinition = {
         pathY = H - 34;
         runnerX = Math.max(16, Math.min(34, Math.round(W * 0.05) + 8));
         overlookX = Math.round(P * 0.3);
-        heronX = Math.round(P * 0.62);
-        deerX = Math.round(P * 0.85);
         const r = seeded(3);
         stars = Array.from(
           { length: Math.round(W / 6) },
@@ -387,7 +514,7 @@ export const trail: SceneDefinition = {
           speed = SPEED[d.gait];
         // On a rest day the owner stands at the Overlook; otherwise the world scrolls past.
         if (d.gait === "rest")
-          scroll += (overlookX / 0.35 - runnerX / 0.35 - scroll) * 0.05;
+          scroll += ((overlookX - runnerX) / BANK_K - scroll) * 0.05;
         else scroll += speed;
         frame = t;
         if (t % 600 === 0) buildSky();
@@ -427,8 +554,6 @@ export const trail: SceneDefinition = {
           geese.x -= 0.7;
           if (geese.x < -60) geese = null;
         }
-        const dx = screenX(deerX, 0.35);
-        if (dx > W || dx < -20) deerShown = chance(0.5);
         const colors = canopyFor(now().getMonth());
         if (
           colors &&
@@ -464,17 +589,12 @@ export const trail: SceneDefinition = {
         if (skyCanvas) ctx.drawImage(skyCanvas, 0, 0);
         blit(far, 0.12);
         for (let k = 0; k < W / 9; k++) {
-          const x = (k * 37 + t) % W,
+          // The South River flows right to left, out toward the Chesapeake Bay.
+          const x = (((k * 37 - t * 0.6 - scroll * 0.12) % W) + W) % W,
             y = riverY + 2 + ((k * 7) % Math.max(1, bankY - riverY - 3));
           p.px(Math.floor(x), y, 3, 1, "rgba(200,230,240,.35)");
         }
-        blit(mid, 0.35);
-        const hx = screenX(heronX, 0.35);
-        if (hx > -10 && hx < W + 10)
-          heron(p, Math.round(hx), bankY - 2, (t >> 4) % 2);
-        const dx = screenX(deerX, 0.35);
-        if (deerShown && dx > -10 && dx < W + 10)
-          deer(p, Math.round(dx), bankY + 8, -1, (t >> 5) % 3 !== 0);
+        blit(mid, BANK_K);
         if (geese)
           for (let k = 0; k < 5; k++)
             goose(
@@ -483,9 +603,10 @@ export const trail: SceneDefinition = {
               Math.round(geese.y + Math.abs(k - 2) * 4),
               (t >> 2) + k,
             );
-        blit(woods, 0.5);
-        blit(near, 0.7);
+        spur(p, bankY + 6, pathY);
+        drawProps(p);
         blit(path, 1);
+        spur(p, pathY - 4, pathY);
         const feet = pathY + 8;
         for (const w of walkers) {
           if (w.kind === "runner")

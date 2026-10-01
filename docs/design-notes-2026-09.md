@@ -50,10 +50,14 @@ Owner decisions and critiques recorded 2026-09-29, for the next design work. Not
 - Code in `frontend/src/scenes/` (pixel toolkit ported from Greenhome); mounted by
   `components/layout/SceneBackground.tsx`, which starts loading scene data only once a canvas is running.
 - **Trail** (`trail.ts`): side-view parallax of Quiet Waters Park: sky by real time of day (dawn, day, dusk, night
-  with stars, moon, summer fireflies), trees by season, the South River with the OVERLOOK deck and a heron, woods
-  with a deer and falling leaves in fall, geese, other runners and dog walkers, and a mile-marker post with this
-  week's miles against the plan. The owner's gait follows today's plan (easy, long, fast, done = jogging
-  as well, rest = stretching at the Overlook).
+  with stars, moon, summer fireflies), trees by season, the South River flowing right to left toward the Bay, the
+  South River Overlook (stone plaza, a gazebo at each end, two benches) joined to the trail by a paved spur, woods
+  with a resident deer and falling leaves in fall, geese, other runners and dog walkers, and a mile-marker post
+  with this week's miles against the plan. The owner's gait follows today's plan (easy, long, fast, done = jogging
+  as well, rest = stretching at the foot of the Overlook spur). Everything between the bank and the trail is a
+  pre-drawn sprite placed by depth, with parallax from the bank's to the trail's; every depth repeats over the
+  same stretch of scrolling as the Overlook, which is what keeps the spur and its clearing lined up.
+- A "Hide UI" button (bottom right) hides the whole interface so the scene can be seen on its own.
 - **Lab** (`lab.ts`, Analytics): the owner on a treadmill under a wall monitor replaying the last run's heart
   rate colored by zone, a whiteboard with week miles vs plan and minutes per zone, a coach reacting to the load
   band, and a room of medals, trophies, race bibs (347 first), a ZONES poster, a QWP map, a window, and a clock.
