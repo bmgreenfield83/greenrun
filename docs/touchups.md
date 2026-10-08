@@ -6,7 +6,7 @@ Phase 8 resolves the actionable UI items below. FIT-device investigations remain
 
 Status: completed in the supplemental Activities navigation-state phase.
 
-The Activities page preserves its loaded pages, filters, and scroll position when an activity is opened and the user navigates back. The focused in-memory cache lasts for the current application session; a browser refresh deliberately performs a fresh API load.
+Superseded (2026-10): the Activities list page was removed, along with this cache. Activities are browsed and imported from the calendar's day view.
 
 ## Planned-run completion details
 

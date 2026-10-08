@@ -20,11 +20,11 @@ The parser adapter uses Garmin's official [`garmin-fit-sdk`](https://github.com/
 
 Garmin Connect sync feeds the same pipeline: it downloads a day's runs, extracts each FIT file in memory, and previews it with its Garmin activity ID attached. See [garmin-sync.md](garmin-sync.md).
 
-## Batch import
+## Importing from the calendar
 
-The import page accepts one or more files through the file picker or drag and drop. Each file is previewed independently through the existing atomic preview endpoint. Queue rows report reading, saving, review-needed, imported, and error states so one invalid file does not block the rest of a batch.
+Imports start from a day in the calendar's day view (`features/calendar/useDayImport.ts`). **Import activity** runs the Garmin Connect sync for that day; **Upload a FIT file** accepts one or more `.fit` files instead. Each file is previewed independently through the existing atomic preview endpoint, so one unreadable file does not block the rest.
 
-Files without duplicate matches or a same-date planned-session suggestion are saved automatically using their parsed FIT metadata. Files requiring a choice retain their preview token and use the existing review dialog. The queue provides per-file retry and review controls, an aggregate result summary, and links to successfully imported activities. Selecting a single file remains supported by the same workflow.
+Previews without duplicate matches or a same-date planned-session suggestion are saved automatically using their parsed FIT metadata, and the calendar refreshes. Previews requiring a choice keep their preview token and open the existing review dialog over the calendar, one at a time. A notice in the day view summarizes the result, including when an uploaded file belongs to a different date than the selected day.
 
 The preview cache stores normalized Pydantic models for at most 30 minutes and has a ten-entry cap. It never stores the uploaded bytes. A backend restart invalidates outstanding previews.
 

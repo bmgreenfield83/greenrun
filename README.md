@@ -57,11 +57,11 @@ No FIT files, original route data, latitude, or longitude will be stored by the 
 
 Detailed installation and Atlas guidance is in [docs/setup.md](docs/setup.md). Backup and portability procedures are in [docs/database-backup.md](docs/database-backup.md). Architectural guardrails for intentionally deferred work are collected in [docs/future-enhancements.md](docs/future-enhancements.md).
 
-## Importing a FIT activity
+## Importing an activity
 
-Open **Import** and select or drag one or more `.fit` activities. Straightforward files save automatically; duplicates and possible planned-workout links pause individually for review. The preview expires after 30 minutes or when the backend restarts. Only normalized activity data is held during preview; original uploaded bytes are released immediately after parsing.
+Activities are browsed and imported from the **Calendar**. Click a day and press **Import activity** to pull that day's runs straight from Garmin Connect; runs already imported are skipped. It needs `GARMIN_EMAIL`, `GARMIN_PASSWORD`, and a one-time sign-in; see [docs/garmin-sync.md](docs/garmin-sync.md).
 
-Or choose a date and press **Sync from Garmin** to pull that day's runs straight from Garmin Connect into the same queue; runs already imported are skipped. It needs `GARMIN_EMAIL`, `GARMIN_PASSWORD`, and a one-time sign-in; see [docs/garmin-sync.md](docs/garmin-sync.md).
+**Upload a FIT file** beside it accepts one or more `.fit` files instead, which is useful if Garmin Connect is unavailable. Either way, straightforward activities save automatically; duplicates and possible planned-workout links open a review dialog. The preview expires after 30 minutes or when the backend restarts. Only normalized activity data is held during preview; original uploaded bytes are released immediately after parsing.
 
 ## Importing a training plan
 

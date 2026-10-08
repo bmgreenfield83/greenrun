@@ -1,14 +1,11 @@
 import { lazy, Suspense } from "react";
-import { Route, Switch } from "wouter";
+import { Redirect, Route, Switch } from "wouter";
 
 import { AppShell } from "./components/layout/AppShell";
 import { DashboardPage } from "./pages/DashboardPage";
 
 // The dashboard is the landing page and ships with the app; every other page (and the heavy calendar and
 // chart libraries behind them) loads on first visit.
-const ActivitiesPage = lazy(() =>
-  import("./pages/ActivitiesPage").then((m) => ({ default: m.ActivitiesPage })),
-);
 const ActivityDetailPage = lazy(() =>
   import("./pages/ActivityDetailPage").then((m) => ({
     default: m.ActivityDetailPage,
@@ -19,9 +16,6 @@ const AnalyticsPage = lazy(() =>
 );
 const CalendarPage = lazy(() =>
   import("./pages/CalendarPage").then((m) => ({ default: m.CalendarPage })),
-);
-const FitImportPage = lazy(() =>
-  import("./pages/FitImportPage").then((m) => ({ default: m.FitImportPage })),
 );
 const PlansPage = lazy(() =>
   import("./pages/PlansPage").then((m) => ({ default: m.PlansPage })),
@@ -45,8 +39,13 @@ export default function App() {
           <Route path="/activities/:id">
             {(params) => <ActivityDetailPage activityId={params.id} />}
           </Route>
-          <Route path="/activities" component={ActivitiesPage} />
-          <Route path="/import" component={FitImportPage} />
+          {/* The activity list and import page now live in the calendar's day view. */}
+          <Route path="/activities">
+            <Redirect to="/calendar" replace />
+          </Route>
+          <Route path="/import">
+            <Redirect to="/calendar" replace />
+          </Route>
           <Route path="/analytics" component={AnalyticsPage} />
           <Route path="/exports" component={ExportsPage} />
           <Route path="/settings" component={SettingsPage} />

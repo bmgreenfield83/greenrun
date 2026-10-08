@@ -45,12 +45,12 @@ describe("application shell", () => {
     const primary = screen.getByRole("navigation", {
       name: "Primary navigation",
     });
-    expect(within(primary).getAllByRole("link")).toHaveLength(8);
+    expect(within(primary).getAllByRole("link")).toHaveLength(6);
     expect(
       within(primary).getByRole("link", { name: "Dashboard" }),
     ).toHaveAttribute("aria-current", "page");
 
-    // Phone tab bar: five main destinations plus a More menu for the rest.
+    // Phone tab bar: the main destinations plus a More menu for the rest.
     const mobile = screen.getByRole("navigation", {
       name: "Mobile navigation",
     });
@@ -58,7 +58,7 @@ describe("application shell", () => {
       within(mobile)
         .getAllByRole("link")
         .map((link) => link.textContent),
-    ).toEqual(["Dashboard", "Calendar", "Activities", "Analytics", "Plans"]);
+    ).toEqual(["Dashboard", "Calendar", "Analytics", "Plans"]);
     const more = within(mobile).getByRole("button", { name: "More" });
     expect(more).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(more);
@@ -71,7 +71,7 @@ describe("application shell", () => {
       within(menu)
         .getAllByRole("menuitem")
         .map((item) => item.textContent),
-    ).toEqual(["Import", "Exports", "Settings"]);
+    ).toEqual(["Exports", "Settings"]);
     expect(await screen.findByText("Connected")).toBeInTheDocument();
   });
 });

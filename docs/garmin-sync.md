@@ -1,11 +1,11 @@
 # Garmin Connect sync
 
-The Import page's **Sync from Garmin** button pulls one day's runs straight from Garmin Connect. It is
-manual only: nothing syncs on a schedule, in the background, or automatically.
+Clicking a day on the **Calendar** and pressing **Import activity** pulls that day's runs straight from
+Garmin Connect. It is manual only: nothing syncs on a schedule, in the background, or automatically.
 
 ## How it works
 
-1. The page sends the chosen date (default: today) to `POST /api/activities/garmin-sync`.
+1. The calendar sends the selected day to `POST /api/activities/garmin-sync`.
 2. The backend asks Garmin Connect for that day's activities and keeps the runs. Running includes
    Garmin's running subtypes (trail, treadmill, track, indoor). The day is matched against each
    activity's local start time as recorded by the watch, which is the date Garmin Connect shows.
@@ -14,12 +14,13 @@ manual only: nothing syncs on a schedule, in the background, or automatically.
 4. For each new run, the backend downloads Garmin's "original" ZIP, extracts the FIT file in memory (no
    temporary files), and passes it to the existing FIT import preview with the Garmin activity ID
    attached. That ID is stored on the activity (`source.garmin_activity_id`).
-5. The previews join the Import page's existing queue and behave exactly like uploaded FIT files:
-   straightforward runs save automatically, while duplicates (by checksum, Garmin ID, or
-   start/duration/distance) and possible planned-session links open the usual review dialog.
+5. The previews behave exactly like uploaded FIT files: straightforward runs save automatically and the
+   calendar refreshes, while duplicates (by checksum, Garmin ID, or start/duration/distance) and
+   possible planned-session links open the usual review dialog over the calendar.
 
-Several runs on one day each get their own queue row. A run whose download fails is reported in the
-queue while the others carry on. The manual FIT upload flow is unchanged.
+Several runs on one day are each previewed and saved. A run whose download fails is reported in the
+day view's notice while the others carry on. **Upload a FIT file**, beside the import button, remains
+available for when Garmin Connect is unavailable.
 
 ### Responses
 
@@ -76,7 +77,7 @@ py -3.12 -m app.services.garmin.setup
 
 Enter the code Garmin sends when prompted for `Garmin MFA code:`. Run the command again with `--force`
 to discard the saved tokens and sign in from scratch, for example after changing the Garmin password or
-when the Import page reports `garmin_setup_required`.
+when the calendar reports that Garmin needs you to sign in again (`garmin_setup_required`).
 
 ## The `garminconnect` library
 

@@ -880,9 +880,10 @@ Implement at least:
 
 1. Dashboard
 2. Calendar
-3. Activity list
+3. Activity list (owner-approved change, 2026-10-08: replaced by the calendar's day view)
 4. Activity detail
-5. FIT import
+5. FIT import (owner-approved change, 2026-10-08: started from a calendar day, by Garmin Connect sync
+   or FIT upload, instead of a separate page)
 6. Manual activity entry
 7. Training-plan management
 8. Plan import preview

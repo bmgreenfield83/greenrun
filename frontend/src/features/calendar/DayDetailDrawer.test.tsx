@@ -68,7 +68,10 @@ it("renders calendar status and confirms before skipping", () => {
       onUnskip={vi.fn()}
       onAttach={vi.fn()}
       onDetach={vi.fn()}
+      importing={false}
+      importNotice={null}
       onImportActivity={vi.fn()}
+      onUploadFiles={vi.fn()}
       onViewActivity={vi.fn()}
     />,
   );
@@ -106,7 +109,10 @@ it("automatically enables attachment for one unplanned activity on the same date
       onUnskip={vi.fn()}
       onAttach={onAttach}
       onDetach={vi.fn()}
+      importing={false}
+      importNotice={null}
       onImportActivity={vi.fn()}
+      onUploadFiles={vi.fn()}
       onViewActivity={vi.fn()}
     />,
   );
@@ -131,7 +137,10 @@ it("allows a skipped session to be restored", () => {
       onUnskip={onUnskip}
       onAttach={vi.fn()}
       onDetach={vi.fn()}
+      importing={false}
+      importNotice={null}
       onImportActivity={vi.fn()}
+      onUploadFiles={vi.fn()}
       onViewActivity={vi.fn()}
     />,
   );
@@ -164,7 +173,10 @@ it("separates the planned workout from the attached run metrics", () => {
       onUnskip={vi.fn()}
       onAttach={vi.fn()}
       onDetach={vi.fn()}
+      importing={false}
+      importNotice={null}
       onImportActivity={vi.fn()}
+      onUploadFiles={vi.fn()}
       onViewActivity={vi.fn()}
     />,
   );
@@ -181,4 +193,76 @@ it("separates the planned workout from the attached run metrics", () => {
   expect(screen.queryByText(/Completed pace/)).not.toBeInTheDocument();
   expect(screen.queryByText(/Completed on/)).not.toBeInTheDocument();
   expect(screen.queryByText(/Activity: Run on/)).not.toBeInTheDocument();
+});
+
+const drawerProps = {
+  date: "2026-08-06",
+  allActivities: [],
+  error: null,
+  busy: false,
+  importing: false,
+  importNotice: null,
+  onClose: vi.fn(),
+  onSkip: vi.fn(),
+  onUnskip: vi.fn(),
+  onAttach: vi.fn(),
+  onDetach: vi.fn(),
+  onImportActivity: vi.fn(),
+  onUploadFiles: vi.fn(),
+  onViewActivity: vi.fn(),
+};
+
+it("imports the day's activity from Garmin or an uploaded FIT file", () => {
+  const onImportActivity = vi.fn();
+  const onUploadFiles = vi.fn();
+  render(
+    <DayDetailDrawer
+      {...drawerProps}
+      events={[]}
+      onImportActivity={onImportActivity}
+      onUploadFiles={onUploadFiles}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Import activity" }));
+  expect(onImportActivity).toHaveBeenCalledOnce();
+
+  const file = new File(["fit"], "run.fit");
+  fireEvent.change(screen.getByLabelText("FIT activity files"), {
+    target: { files: [file] },
+  });
+  expect(onUploadFiles).toHaveBeenCalledWith([file]);
+});
+
+it("shows import progress and the result", () => {
+  render(
+    <DayDetailDrawer
+      {...drawerProps}
+      events={[session]}
+      importing
+      importNotice={{
+        severity: "info",
+        text: "No runs on Garmin Connect for this day.",
+      }}
+    />,
+  );
+
+  expect(screen.getByRole("button", { name: "Importing…" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Upload a FIT file" }),
+  ).toBeDisabled();
+  expect(
+    screen.getByText("No runs on Garmin Connect for this day."),
+  ).toBeInTheDocument();
+});
+
+it("offers to import another activity on a day that already has one", () => {
+  render(<DayDetailDrawer {...drawerProps} events={[activity]} />);
+
+  expect(
+    screen.getByRole("button", { name: "Import another activity" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Import activity" }),
+  ).not.toBeInTheDocument();
 });

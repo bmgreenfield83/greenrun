@@ -60,7 +60,7 @@ function TabLabel({ children }: { children: ReactNode }) {
   );
 }
 
-/** Fixed bottom tab bar for phones: the five main destinations plus "More". */
+/** Fixed bottom tab bar for phones: the main destinations plus "More". */
 export function BottomTabBar({ location }: { location: string }) {
   return (
     <Box

@@ -66,3 +66,13 @@ Owner decisions and critiques recorded 2026-09-29, for the next design work. Not
 - Future (owner idea, 2026-09-29): a proper winter look for the trail. Seasons already switch the trees (bare
   branches and duller grass in December–February); snow on the ground and trees, a frozen river edge, and a
   winter-dressed runner would complete it.
+
+## Calendar-first activities (2026-10-08)
+
+- The owner reviews activities on the calendar, so the Activities list page and the Import page were removed
+  (old `/activities` and `/import` links redirect to `/calendar`). Activity detail pages remain.
+- A calendar day's **Import activity** button runs the Garmin Connect sync for that day in place, with
+  **Upload a FIT file** beside it as the fallback if Garmin is unavailable. Straightforward activities save at
+  once; duplicates and planned-workout links open the review dialog over the calendar. Days that already have
+  an activity offer **Import another activity**.
+- Deleting an activity returns to its day on the calendar.

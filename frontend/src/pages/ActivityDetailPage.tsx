@@ -45,7 +45,6 @@ const keyStats = new Set([
   "Average speed",
 ]);
 import { ActivityCharts } from "../features/activities/ActivityCharts";
-import { clearActivityListState } from "../features/activities/activityListState";
 import {
   activityType,
   duration,
@@ -278,10 +277,9 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
               onClick={() => {
                 if (window.confirm("Delete this activity?"))
                   void deleteActivity(activity.id)
-                    .then(() => {
-                      clearActivityListState();
-                      setLocation("/activities");
-                    })
+                    .then(() =>
+                      setLocation(`/calendar?date=${activity.local_date}`),
+                    )
                     .catch((reason: Error) => setError(reason.message));
               }}
             >

@@ -6,6 +6,25 @@ const json = (body: unknown, status = 200) => ({
   body: JSON.stringify(body),
 });
 
+const fitPreview = {
+  preview_token: "token",
+  activity: {
+    sport: "run",
+    category: "easy",
+    title: "Run",
+    local_date: "2026-08-05",
+    distance_meters: 5000,
+    elapsed_time_seconds: 1800,
+    summary: {},
+    laps: [],
+    subjective: {},
+    planned_session_id: null,
+  },
+  sample_count: 100,
+  duplicate_matches: [],
+  suggested_planned_session: null,
+};
+
 async function mockApi(page: Page) {
   await page.route(
     (url) => url.pathname.startsWith("/api/"),
@@ -40,6 +59,7 @@ async function mockApi(page: Page) {
                 sport: "run",
                 status: "planned",
                 activity_id: null,
+                planned_session_id: "s1",
               },
               {
                 id: "a1",
@@ -57,27 +77,27 @@ async function mockApi(page: Page) {
         );
       if (path.endsWith("/plans"))
         return route.fulfill(json({ items: [], total: 0 }));
-      if (path.includes("/activities/import-fit/preview"))
+      if (path.endsWith("/activities/garmin-sync"))
         return route.fulfill(
           json({
-            preview_token: "token",
-            activity: {
-              sport: "run",
-              category: "easy",
-              title: "Run",
-              local_date: "2026-08-05",
-              distance_meters: 5000,
-              elapsed_time_seconds: 1800,
-              summary: {},
-              laps: [],
-              subjective: {},
-              planned_session_id: null,
-            },
-            sample_count: 100,
-            duplicate_matches: [],
-            suggested_planned_session: null,
+            date: "2026-08-05",
+            status: "ready",
+            items: [
+              {
+                garmin_activity_id: "1001",
+                name: "Annapolis Running",
+                started_at_local: "2026-08-05 06:15:00",
+                distance_meters: 5000,
+                status: "ready",
+                activity_id: null,
+                preview: fitPreview,
+                error: null,
+              },
+            ],
           }),
         );
+      if (path.includes("/activities/import-fit/preview"))
+        return route.fulfill(json(fitPreview));
       if (path.includes("/activities/import-fit/confirm"))
         return route.fulfill(
           json(
@@ -114,8 +134,7 @@ test("primary navigation reaches the major workflows", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("region", { name: "Today" })).toBeVisible();
   for (const [label, heading] of [
-    ["Activities", "Activities"],
-    ["Import", "Import Garmin FIT"],
+    ["Calendar", "Training calendar"],
     ["Analytics", "Analytics"],
     ["Plans", "Training plans"],
   ]) {
@@ -157,13 +176,33 @@ test("calendar visibility controls work", async ({ page }) => {
   await expect(completedEvent).toBeVisible();
 });
 
-test("a straightforward FIT file imports automatically", async ({ page }) => {
-  await page.goto("/import");
-  await page.getByLabel("Garmin FIT files").setInputFiles({
-    name: "activity.fit",
-    mimeType: "application/octet-stream",
-    buffer: Buffer.from("synthetic-fit"),
-  });
-  await expect(page.getByText("Import complete: 1 imported.")).toBeVisible();
-  await expect(page.getByRole("link", { name: "View activity" })).toBeVisible();
+// The day drawer opens straight away; wait for the day's events before using its import controls.
+async function openDay(page: Page) {
+  await page.goto("/calendar?date=2026-08-05");
+  await expect(page.getByRole("heading", { name: "Easy run" })).toBeVisible();
+}
+
+test("a calendar day imports its run from Garmin", async ({ page }) => {
+  await openDay(page);
+  await page
+    .getByRole("button", { name: "Import activity", exact: true })
+    .click();
+  await expect(
+    page.getByText("Imported 1 activity from Garmin."),
+  ).toBeVisible();
+});
+
+test("a calendar day still accepts an uploaded FIT file", async ({ page }) => {
+  await openDay(page);
+  await page
+    .getByLabel("FIT activity files")
+    .first()
+    .setInputFiles({
+      name: "activity.fit",
+      mimeType: "application/octet-stream",
+      buffer: Buffer.from("synthetic-fit"),
+    });
+  await expect(
+    page.getByText("Imported 1 activity from the FIT file."),
+  ).toBeVisible();
 });

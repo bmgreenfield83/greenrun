@@ -31,7 +31,9 @@ import {
   unskipSession,
   type CalendarEvent,
 } from "../api/calendar";
+import { FitImportPreviewDialog } from "../features/activities/FitImportPreviewDialog";
 import { DayDetailDrawer } from "../features/calendar/DayDetailDrawer";
+import { useDayImport } from "../features/calendar/useDayImport";
 
 // Planned sessions are hollow (panel fill, sport-colored dashed border); completed work is
 // solid forest green; skipped is brick red.
@@ -121,6 +123,12 @@ export function CalendarPage() {
           : "Calendar data could not be loaded.",
       );
     }
+  };
+
+  const dayImport = useDayImport(() => load());
+  const openDay = (date: string | null) => {
+    setSelectedDate(date);
+    dayImport.clearNotice();
   };
 
   const datesSet = (arg: DatesSetArg) => {
@@ -313,10 +321,10 @@ export function CalendarPage() {
             }
             events={fullCalendarEvents}
             datesSet={datesSet}
-            dateClick={(arg) => setSelectedDate(arg.dateStr)}
+            dateClick={(arg) => openDay(arg.dateStr)}
             eventClick={(arg: EventClickArg) => {
               const source = arg.event.extendedProps.source as CalendarEvent;
-              setSelectedDate(source.date);
+              openDay(source.date);
             }}
             eventContent={eventContent}
             eventDidMount={(arg) => {
@@ -335,16 +343,33 @@ export function CalendarPage() {
         allActivities={events.filter((event) => event.kind === "activity")}
         error={selectedDate ? error : null}
         busy={busy}
-        onClose={() => setSelectedDate(null)}
+        onClose={() => openDay(null)}
         onSkip={(id) => void runAction(() => skipSession(id, ""))}
         onUnskip={(id) => void runAction(() => unskipSession(id))}
         onAttach={(id, activityId) =>
           void runAction(() => attachActivity(id, activityId))
         }
         onDetach={(id) => void runAction(() => detachActivity(id))}
-        onImportActivity={() => setLocation("/import")}
+        importing={dayImport.importing}
+        importNotice={dayImport.notice}
+        onImportActivity={() => {
+          if (selectedDate) void dayImport.importDay(selectedDate);
+        }}
+        onUploadFiles={(files) => {
+          if (selectedDate) void dayImport.importFiles(files, selectedDate);
+        }}
         onViewActivity={(id) => setLocation(`/activities/${id}`)}
       />
+      {dayImport.review && (
+        <FitImportPreviewDialog
+          key={dayImport.review.preview_token}
+          preview={dayImport.review}
+          saving={dayImport.reviewSaving}
+          error={dayImport.reviewError}
+          onCancel={dayImport.cancelReview}
+          onConfirm={(payload) => void dayImport.confirmReview(payload)}
+        />
+      )}
     </Stack>
   );
 }

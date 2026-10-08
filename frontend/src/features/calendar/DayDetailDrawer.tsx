@@ -6,6 +6,7 @@ import {
   CardContent,
   Checkbox,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -20,9 +21,11 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import { useState } from "react";
+import SyncRounded from "@mui/icons-material/SyncRounded";
+import { useRef, useState } from "react";
 
 import type { CalendarEvent } from "../../api/calendar";
+import type { ImportNotice } from "./useDayImport";
 
 type Props = {
   date: string | null;
@@ -35,9 +38,72 @@ type Props = {
   onUnskip: (sessionId: string) => void;
   onAttach: (sessionId: string, activityId: string) => void;
   onDetach: (sessionId: string) => void;
+  importing: boolean;
+  importNotice: ImportNotice | null;
   onImportActivity: () => void;
+  onUploadFiles: (files: File[]) => void;
   onViewActivity: (activityId: string) => void;
 };
+
+// Pulls the day's runs from Garmin; uploading a FIT file remains as a fallback.
+function ImportActions({
+  importing,
+  onImport,
+  onUpload,
+  label = "Import activity",
+  variant = "contained",
+}: {
+  importing: boolean;
+  onImport: () => void;
+  onUpload: (files: File[]) => void;
+  label?: string;
+  variant?: "contained" | "outlined";
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <Stack
+      direction="row"
+      spacing={1}
+      alignItems="center"
+      flexWrap="wrap"
+      useFlexGap
+    >
+      <Button
+        variant={variant}
+        disabled={importing}
+        startIcon={
+          importing ? (
+            <CircularProgress size={16} color="inherit" />
+          ) : (
+            <SyncRounded />
+          )
+        }
+        onClick={onImport}
+      >
+        {importing ? "Importing…" : label}
+      </Button>
+      <Button
+        size="small"
+        disabled={importing}
+        onClick={() => input.current?.click()}
+      >
+        Upload a FIT file
+      </Button>
+      <input
+        ref={input}
+        hidden
+        multiple
+        type="file"
+        accept=".fit,application/octet-stream"
+        aria-label="FIT activity files"
+        onChange={(event) => {
+          onUpload(Array.from(event.target.files ?? []));
+          event.target.value = "";
+        }}
+      />
+    </Stack>
+  );
+}
 
 function miles(meters: number | null) {
   return meters === null ? "—" : `${(meters / 1609.344).toFixed(2)} mi`;
@@ -74,6 +140,24 @@ export function DayDetailDrawer(props: Props) {
       event.status === "unplanned" &&
       event.date === props.date,
   );
+  const importActions = (label?: string, variant?: "outlined") => (
+    <ImportActions
+      importing={props.importing}
+      onImport={props.onImportActivity}
+      onUpload={props.onUploadFiles}
+      label={label}
+      variant={variant}
+    />
+  );
+  // Planned sessions waiting for their activity offer the import inline; otherwise it goes at the end.
+  const hasInlineImport = props.events.some(
+    (event) =>
+      event.kind === "planned_session" &&
+      event.planned_session_id &&
+      !event.activity_id &&
+      event.status !== "skipped" &&
+      !sameDayUnplanned.length,
+  );
 
   return (
     <>
@@ -96,13 +180,16 @@ export function DayDetailDrawer(props: Props) {
               </IconButton>
             </Box>
             {props.error && <Alert severity="error">{props.error}</Alert>}
+            {props.importNotice && (
+              <Alert severity={props.importNotice.severity}>
+                {props.importNotice.text}
+              </Alert>
+            )}
             {!props.events.length && (
               <>
                 <Typography variant="h5">No planned workout</Typography>
                 <Typography color="text.secondary">{props.date}</Typography>
-                <Button variant="contained" onClick={props.onImportActivity}>
-                  Import activity
-                </Button>
+                {importActions()}
               </>
             )}
             {props.events.map((event) => {
@@ -329,32 +416,25 @@ export function DayDetailDrawer(props: Props) {
                           !event.activity_id &&
                           !isSkipped && (
                             <Stack spacing={1} alignItems="flex-start">
-                              {sameDayUnplanned.length ? (
-                                sameDayUnplanned.map((activity) => (
-                                  <Button
-                                    key={activity.id}
-                                    variant="contained"
-                                    disabled={
-                                      props.busy || !activity.activity_id
-                                    }
-                                    onClick={() =>
-                                      props.onAttach(
-                                        sessionId,
-                                        activity.activity_id!,
-                                      )
-                                    }
-                                  >
-                                    Attach {activity.title}
-                                  </Button>
-                                ))
-                              ) : (
-                                <Button
-                                  variant="contained"
-                                  onClick={props.onImportActivity}
-                                >
-                                  Import activity
-                                </Button>
-                              )}
+                              {sameDayUnplanned.length
+                                ? sameDayUnplanned.map((activity) => (
+                                    <Button
+                                      key={activity.id}
+                                      variant="contained"
+                                      disabled={
+                                        props.busy || !activity.activity_id
+                                      }
+                                      onClick={() =>
+                                        props.onAttach(
+                                          sessionId,
+                                          activity.activity_id!,
+                                        )
+                                      }
+                                    >
+                                      Attach {activity.title}
+                                    </Button>
+                                  ))
+                                : importActions()}
                             </Stack>
                           )}
                       </Stack>
@@ -363,6 +443,9 @@ export function DayDetailDrawer(props: Props) {
                 </Stack>
               );
             })}
+            {props.events.length > 0 &&
+              !hasInlineImport &&
+              importActions("Import another activity", "outlined")}
           </Stack>
         </Box>
       </Drawer>
