@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     frontend_dist: str = ""
     storage_limit_bytes: int = Field(default=536_870_912, gt=0)
     max_fit_upload_bytes: int = Field(default=52_428_800, gt=0)
+    # Garmin Connect sync. Credentials stay server-side; tokens persist in garmin_token_dir so a
+    # full login (and MFA) is only needed once. See docs/garmin-sync.md.
+    garmin_email: str = ""
+    garmin_password: SecretStr = SecretStr("")
+    garmin_token_dir: str = "~/.garminconnect"
+
+    @property
+    def garmin_configured(self) -> bool:
+        return bool(self.garmin_email.strip() and self.garmin_password.get_secret_value())
 
     @property
     def cors_origins(self) -> list[str]:

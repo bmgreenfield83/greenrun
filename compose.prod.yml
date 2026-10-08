@@ -10,3 +10,9 @@ services:
     env_file: .env
     ports:
       - "127.0.0.1:${GREENRUN_PORT:-8440}:8000"
+    volumes:
+      # Garmin Connect sign-in tokens, kept across rebuilds and restarts. See docs/garmin-sync.md.
+      - garmin-tokens:/data/garmin
+
+volumes:
+  garmin-tokens:

@@ -61,6 +61,8 @@ Detailed installation and Atlas guidance is in [docs/setup.md](docs/setup.md). B
 
 Open **Import** and select or drag one or more `.fit` activities. Straightforward files save automatically; duplicates and possible planned-workout links pause individually for review. The preview expires after 30 minutes or when the backend restarts. Only normalized activity data is held during preview; original uploaded bytes are released immediately after parsing.
 
+Or choose a date and press **Sync from Garmin** to pull that day's runs straight from Garmin Connect into the same queue; runs already imported are skipped. It needs `GARMIN_EMAIL`, `GARMIN_PASSWORD`, and a one-time sign-in; see [docs/garmin-sync.md](docs/garmin-sync.md).
+
 ## Importing a training plan
 
 Open **Plans**, download the blank template or use the documented example, and validate the JSON. Plans can carry actual dates. For an undated plan, optionally choose a Monday override; otherwise it begins on the current week's Monday. Review the resolved dates and mileage before importing. If another plan is active, the confirmation explicitly archives it without deleting its sessions or completed activities.

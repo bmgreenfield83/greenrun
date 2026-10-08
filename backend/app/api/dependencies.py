@@ -11,6 +11,7 @@ from app.services.analytics import AnalyticsService
 from app.services.calendar import CalendarService
 from app.services.exports import ExportService
 from app.services.fit.imports import FitImportService
+from app.services.garmin.sync import GarminSyncService
 from app.services.plan_imports.imports import PlanImportService
 from app.services.plans import PlannedSessionService, SessionWorkflowService, TrainingPlanService
 from app.services.settings import SettingsService
@@ -93,6 +94,23 @@ SessionWorkflowDependency = Annotated[SessionWorkflowService, Depends(get_sessio
 SettingsServiceDependency = Annotated[SettingsService, Depends(get_settings_service)]
 FitImportServiceDependency = Annotated[FitImportService, Depends(get_fit_import_service)]
 PlanImportServiceDependency = Annotated[PlanImportService, Depends(get_plan_import_service)]
+
+
+def get_garmin_sync_service(
+    request: Request,
+    database: Database,
+    config: RuntimeSettings,
+    fit_imports: FitImportServiceDependency,
+) -> GarminSyncService:
+    return GarminSyncService(
+        request.app.state.garmin_client,
+        fit_imports,
+        ActivityRepository(database),
+        max_fit_bytes=config.max_fit_upload_bytes,
+    )
+
+
+GarminSyncServiceDependency = Annotated[GarminSyncService, Depends(get_garmin_sync_service)]
 CalendarServiceDependency = Annotated[CalendarService, Depends(get_calendar_service)]
 
 

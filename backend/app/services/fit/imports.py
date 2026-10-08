@@ -60,13 +60,19 @@ class FitImportService:
         self.sample_interval_seconds = sample_interval_seconds
         self.sample_chunk_seconds = sample_chunk_seconds
 
-    async def preview(self, content: bytes, filename: str) -> FitImportPreviewResponse:
+    async def preview(
+        self, content: bytes, filename: str, *, garmin_activity_id: str | None = None
+    ) -> FitImportPreviewResponse:
+        """Parse a FIT file and check it for duplicates. Garmin sync passes the Connect activity ID,
+        which the FIT file itself does not always carry, so it is stored and checked too."""
         checksum = sha256(content).hexdigest()
         parsed = await to_thread.run_sync(
             self.parser.parse, content, filename, self.sample_interval_seconds
         )
         parsed.activity.source.checksum_sha256 = checksum
         parsed.activity.source.imported_at_utc = utc_now()
+        if garmin_activity_id:
+            parsed.activity.source.garmin_activity_id = garmin_activity_id
         duplicate_documents = await self.activities.find_duplicates(
             checksum=checksum,
             garmin_activity_id=parsed.activity.source.garmin_activity_id,

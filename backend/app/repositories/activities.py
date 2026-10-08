@@ -68,6 +68,10 @@ class ActivityRepository:
             return True
         return False
 
+    async def find_by_garmin_activity_id(self, garmin_activity_id: str) -> dict[str, Any] | None:
+        document = await self.collection.find_one({"source.garmin_activity_id": garmin_activity_id})
+        return document_to_api(document) if document else None
+
     async def find_duplicates(
         self,
         *,

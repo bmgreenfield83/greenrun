@@ -18,6 +18,8 @@ The parser adapter uses Garmin's official [`garmin-fit-sdk`](https://github.com/
 12. Automatically confirm straightforward queued files that have neither duplicate matches nor a planned-session decision.
 13. Pause duplicate matches and possible planned-session links for explicit review before saving.
 
+Garmin Connect sync feeds the same pipeline: it downloads a day's runs, extracts each FIT file in memory, and previews it with its Garmin activity ID attached. See [garmin-sync.md](garmin-sync.md).
+
 ## Batch import
 
 The import page accepts one or more files through the file picker or drag and drop. Each file is previewed independently through the existing atomic preview endpoint. Queue rows report reading, saving, review-needed, imported, and error states so one invalid file does not block the rest of a batch.

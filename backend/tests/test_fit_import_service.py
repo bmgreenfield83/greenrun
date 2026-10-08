@@ -259,3 +259,28 @@ async def test_replacement_preserves_existing_editable_metadata() -> None:
     assert result.activity.title == "My preserved title"
     assert result.activity.subjective.notes == "Preserve this"
     assert result.activity.weather_notes == "Warm"
+
+
+class RecordingActivitiesFake(ActivitiesFake):
+    def __init__(self) -> None:
+        super().__init__()
+        self.duplicate_queries: list[dict[str, object]] = []
+
+    async def find_duplicates(self, **kwargs: object) -> list[dict]:
+        self.duplicate_queries.append(kwargs)
+        return []
+
+
+async def test_preview_records_garmin_activity_id_from_sync() -> None:
+    activities = RecordingActivitiesFake()
+    import_service, _cache, _samples = service(activities)
+
+    synced = await import_service.preview(b"fit-bytes", "run.fit", garmin_activity_id="987654")
+    uploaded = await import_service.preview(b"fit-bytes", "run.fit")
+
+    assert synced.activity.source.garmin_activity_id == "987654"
+    assert uploaded.activity.source.garmin_activity_id is None
+    assert [query["garmin_activity_id"] for query in activities.duplicate_queries] == [
+        "987654",
+        None,
+    ]

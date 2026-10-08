@@ -6,6 +6,8 @@ requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.116,<1.0",
   "garmin-fit-sdk>=21.205,<22.0",
+  # Pinned: Garmin Connect login/download. Review the source before bumping (see docs/garmin-sync.md).
+  "garminconnect==0.3.17",
   "pydantic-settings>=2.10,<3.0",
   "pymongo>=4.13,<5.0",
   "python-dotenv>=1.1,<2.0",

@@ -15,6 +15,7 @@ from app.db.indexes import ensure_indexes
 from app.frontend import mount_frontend
 from app.services.fit import GarminFitActivityParser
 from app.services.fit.cache import FitPreviewCache
+from app.services.garmin.client import GarminConnectClient
 from app.services.plan_imports.cache import PlanPreviewCache
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.state.fit_parser = GarminFitActivityParser()
     application.state.fit_preview_cache = FitPreviewCache()
     application.state.plan_preview_cache = PlanPreviewCache()
+    application.state.garmin_client = GarminConnectClient(
+        email=resolved_settings.garmin_email,
+        password=resolved_settings.garmin_password.get_secret_value(),
+        token_dir=resolved_settings.garmin_token_dir,
+    )
     application.add_middleware(
         CORSMiddleware,
         allow_origins=resolved_settings.cors_origins,

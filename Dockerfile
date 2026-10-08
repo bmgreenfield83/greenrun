@@ -15,8 +15,14 @@ RUN python -m pip install --no-cache-dir /app/backend
 COPY --from=frontend /src/frontend/dist /app/frontend-dist
 ENV APP_ENV=production \
     FRONTEND_DIST=/app/frontend-dist \
+    GARMIN_TOKEN_DIR=/data/garmin \
     PYTHONUNBUFFERED=1
-RUN useradd --uid 1000 --no-create-home greenrun
+# Garmin Connect tokens live on a volume mounted here (see compose.prod.yml); the directory is created
+# owned by the app user so a fresh named volume inherits that ownership.
+RUN useradd --uid 1000 --no-create-home greenrun \
+    && mkdir -p /data/garmin \
+    && chown greenrun:greenrun /data/garmin \
+    && chmod 700 /data/garmin
 USER greenrun
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4).status == 200 else 1)"

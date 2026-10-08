@@ -49,6 +49,18 @@ Push changes from the PC, then on the Beelink run `./deploy/greenrun.sh update` 
 Update button once Greenrun is registered there). The container restarts automatically after a reboot
 (`restart: unless-stopped`).
 
+## Garmin Connect sync
+
+Add `GARMIN_EMAIL` and `GARMIN_PASSWORD` to the Beelink `.env`, run `./deploy/greenrun.sh update`, then
+sign in once (this is where Garmin's MFA code is entered):
+
+```sh
+docker compose -f compose.prod.yml exec -w /app/backend app python -m app.services.garmin.setup
+```
+
+Sign-in tokens are kept in the `garmin-tokens` Docker volume, so updates and restarts keep them. Details
+and troubleshooting are in [garmin-sync.md](garmin-sync.md).
+
 ## Health endpoints
 
 - `GET /api/health` returns `{"status":"ok"}` when the process is up (used by the Docker `HEALTHCHECK`).

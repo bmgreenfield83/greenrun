@@ -2,6 +2,7 @@ import CheckCircleRounded from "@mui/icons-material/CheckCircleRounded";
 import CloudUploadRounded from "@mui/icons-material/CloudUploadRounded";
 import ErrorOutlineRounded from "@mui/icons-material/ErrorOutlineRounded";
 import PendingRounded from "@mui/icons-material/PendingRounded";
+import SyncRounded from "@mui/icons-material/SyncRounded";
 import VisibilityRounded from "@mui/icons-material/VisibilityRounded";
 import {
   Alert,
@@ -10,8 +11,10 @@ import {
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   LinearProgress,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 import { useRef, useState } from "react";
@@ -24,15 +27,24 @@ import {
   type ConfirmFitImport,
   type FitImportPreview,
 } from "../api/fitImports";
+import {
+  syncFromGarmin,
+  type GarminSyncItem,
+  type GarminSyncResult,
+} from "../api/garminSync";
 import { clearActivityListState } from "../features/activities/activityListState";
 import { FitImportPreviewDialog } from "../features/activities/FitImportPreviewDialog";
+import { isoDate } from "../features/dashboard/dashboardDates";
 
 type QueueStatus =
   "queued" | "previewing" | "needs_review" | "saving" | "imported" | "error";
 
+// A queued activity comes from an uploaded FIT file or from a Garmin Connect sync.
 type QueueItem = {
   id: string;
-  file: File;
+  name: string;
+  file?: File;
+  garminActivityId?: string;
   status: QueueStatus;
   preview?: FitImportPreview;
   activityId?: string;
@@ -53,6 +65,9 @@ export function FitImportPage() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [syncDate, setSyncDate] = useState(() => isoDate(new Date()));
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncOutcome | null>(null);
 
   const updateItem = (id: string, changes: Partial<QueueItem>) =>
     setQueue((current) =>
@@ -60,9 +75,24 @@ export function FitImportPage() {
     );
 
   const processItem = async (item: QueueItem) => {
+    if (!item.file) return;
     updateItem(item.id, { status: "previewing", error: undefined });
     try {
-      const preview = await previewFitImport(item.file);
+      await importPreview(item, await previewFitImport(item.file));
+    } catch (reason) {
+      updateItem(item.id, {
+        status: "error",
+        error:
+          reason instanceof Error
+            ? reason.message
+            : "The FIT file could not be imported.",
+      });
+    }
+  };
+
+  // Straightforward activities save straight away; duplicates and possible plan links wait for review.
+  const importPreview = async (item: QueueItem, preview: FitImportPreview) => {
+    try {
       if (
         preview.duplicate_matches.length > 0 ||
         preview.suggested_planned_session
@@ -88,7 +118,7 @@ export function FitImportPage() {
         error:
           reason instanceof Error
             ? reason.message
-            : "The FIT file could not be imported.",
+            : "The activity could not be imported.",
       });
     }
   };
@@ -99,6 +129,7 @@ export function FitImportPage() {
     );
     const added = fitFiles.map((file, index) => ({
       id: `${Date.now()}-${index}-${file.name}`,
+      name: file.name,
       file,
       status: "queued" as const,
     }));
@@ -130,6 +161,53 @@ export function FitImportPage() {
     }
   };
 
+  const syncGarmin = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const result = await syncFromGarmin(syncDate);
+      // A run still in the queue from an earlier sync is not queued twice.
+      const queued = new Set(
+        queue
+          .filter((item) => item.garminActivityId && item.status !== "error")
+          .map((item) => item.garminActivityId),
+      );
+      const fresh = result.items.filter(
+        (item) =>
+          item.status !== "already_imported" &&
+          !queued.has(item.garmin_activity_id),
+      );
+      const added: QueueItem[] = fresh.map((item) => ({
+        id: `garmin-${item.garmin_activity_id}-${Date.now()}`,
+        name: item.name ?? `Garmin activity ${item.garmin_activity_id}`,
+        garminActivityId: item.garmin_activity_id,
+        status: item.status === "error" ? "error" : "saving",
+        preview: item.preview ?? undefined,
+        error: item.error ?? undefined,
+      }));
+      setQueue((current) => [...current, ...added]);
+      setSyncResult({
+        result,
+        requeued:
+          fresh.length <
+          result.items.filter((item) => item.status !== "already_imported")
+            .length,
+      });
+      added.forEach((item) => {
+        if (item.preview) void importPreview(item, item.preview);
+      });
+    } catch (reason) {
+      setSyncResult({
+        error:
+          reason instanceof Error
+            ? reason.message
+            : "The Garmin sync failed. Try again shortly.",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const completed = queue.filter((item) => item.status === "imported").length;
   const failed = queue.filter((item) => item.status === "error").length;
   const needsReview = queue.filter(
@@ -146,6 +224,50 @@ export function FitImportPage() {
         title="Import Garmin FIT"
         description="Add one or more FIT files. Straightforward activities save automatically; only duplicates and possible planned-workout links pause for review."
       />
+
+      <Card variant="outlined">
+        <CardContent>
+          <Stack spacing={2}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              alignItems={{ sm: "center" }}
+            >
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="h6">Sync from Garmin Connect</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Pull a day's runs straight from Garmin. Runs already in
+                  Greenrun are skipped.
+                </Typography>
+              </Box>
+              <TextField
+                type="date"
+                label="Activity date"
+                size="small"
+                value={syncDate}
+                onChange={(event) => setSyncDate(event.target.value)}
+                disabled={syncing}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+              <Button
+                variant="contained"
+                startIcon={
+                  syncing ? (
+                    <CircularProgress size={18} color="inherit" />
+                  ) : (
+                    <SyncRounded />
+                  )
+                }
+                disabled={syncing || !syncDate}
+                onClick={() => void syncGarmin()}
+              >
+                {syncing ? "Syncing…" : "Sync from Garmin"}
+              </Button>
+            </Stack>
+            {syncResult && <SyncMessage outcome={syncResult} />}
+          </Stack>
+        </CardContent>
+      </Card>
 
       <Card variant="outlined">
         <CardContent>
@@ -239,7 +361,7 @@ export function FitImportPage() {
                   )}
                   <div style={{ flexGrow: 1, minWidth: 0 }}>
                     <Typography fontWeight={700} noWrap>
-                      {item.file.name}
+                      {item.name}
                     </Typography>
                     <Typography
                       variant="body2"
@@ -262,7 +384,7 @@ export function FitImportPage() {
                       Review
                     </Button>
                   )}
-                  {item.status === "error" && (
+                  {item.status === "error" && item.file && (
                     <Button onClick={() => void processItem(item)}>
                       Retry
                     </Button>
@@ -306,5 +428,80 @@ export function FitImportPage() {
         />
       )}
     </Stack>
+  );
+}
+
+type SyncOutcome =
+  | { result: GarminSyncResult; requeued: boolean; error?: undefined }
+  | { error: string; result?: undefined };
+
+const dayLabel = (date: string) =>
+  new Date(`${date}T00:00`).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
+const runs = (count: number) => `${count} run${count === 1 ? "" : "s"}`;
+
+function ImportedLinks({ items }: { items: GarminSyncItem[] }) {
+  const imported = items.filter(
+    (item) => item.status === "already_imported" && item.activity_id,
+  );
+  if (!imported.length) return null;
+  return (
+    <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap" }}>
+      {imported.map((item) => (
+        <Button
+          key={item.garmin_activity_id}
+          size="small"
+          component={Link}
+          href={`/activities/${item.activity_id}`}
+          startIcon={<VisibilityRounded />}
+        >
+          {item.name ?? "View activity"}
+        </Button>
+      ))}
+    </Stack>
+  );
+}
+
+function SyncMessage({ outcome }: { outcome: SyncOutcome }) {
+  if (outcome.error !== undefined)
+    return <Alert severity="error">{outcome.error}</Alert>;
+  const { result } = outcome;
+  const day = dayLabel(result.date);
+  const count = (status: GarminSyncItem["status"]) =>
+    result.items.filter((item) => item.status === status).length;
+  const ready = count("ready");
+  const failed = count("error");
+  const imported = count("already_imported");
+  if (result.status === "no_activities")
+    return <Alert severity="info">No runs on Garmin Connect for {day}.</Alert>;
+  if (result.status === "already_imported")
+    return (
+      <Alert severity="info">
+        {imported === 1
+          ? `The run from ${day} is already in Greenrun.`
+          : `All ${runs(imported)} from ${day} are already in Greenrun.`}
+        <ImportedLinks items={result.items} />
+      </Alert>
+    );
+  if (result.status === "failed")
+    return (
+      <Alert severity="error">
+        Garmin found {runs(failed)} for {day}, but{" "}
+        {failed === 1 ? "it" : "they"} could not be downloaded. The import queue
+        below has the details.
+      </Alert>
+    );
+  return (
+    <Alert severity={failed ? "warning" : "success"}>
+      Found {runs(ready)} to import from {day}
+      {outcome.requeued ? " (some were already in the queue)" : ""}.
+      {imported ? ` ${runs(imported)} already in Greenrun.` : ""}
+      {failed ? ` ${runs(failed)} could not be downloaded.` : ""}
+      <ImportedLinks items={result.items} />
+    </Alert>
   );
 }

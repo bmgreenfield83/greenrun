@@ -129,6 +129,19 @@ Run from `/srv/apps/greenrun` on the Beelink. See [docs/deployment.md](docs/depl
 ./deploy/greenrun.sh stop
 ```
 
+Garmin Connect one-time sign-in (enter the MFA code when asked; `--force` signs in from scratch).
+See [docs/garmin-sync.md](docs/garmin-sync.md).
+
+```sh
+docker compose -f compose.prod.yml exec -w /app/backend app python -m app.services.garmin.setup
+```
+
+Locally, from `backend/`:
+
+```powershell
+py -3.12 -m app.services.garmin.setup
+```
+
 ## Schema and indexes
 
 ```powershell
