@@ -7,6 +7,7 @@ from app.repositories.activities import ActivityRepository, ActivitySampleReposi
 from app.repositories.plans import PlannedSessionRepository, TrainingPlanRepository
 from app.repositories.settings import SettingsRepository
 from app.services.activities import ActivityService
+from app.services.ai_reviews import AiReviewsDisabledError, AiReviewService
 from app.services.analytics import AnalyticsService
 from app.services.calendar import CalendarService
 from app.services.exports import ExportService
@@ -137,3 +138,13 @@ def get_export_service(database: Database) -> ExportService:
 
 
 ExportServiceDependency = Annotated[ExportService, Depends(get_export_service)]
+
+
+def get_ai_review_service(request: Request, sessions: SessionServiceDependency) -> AiReviewService:
+    client = request.app.state.green_ai_client
+    if client is None:
+        raise AiReviewsDisabledError("AI reviews are not configured on this server.")
+    return AiReviewService(client, sessions)
+
+
+AiReviewServiceDependency = Annotated[AiReviewService, Depends(get_ai_review_service)]

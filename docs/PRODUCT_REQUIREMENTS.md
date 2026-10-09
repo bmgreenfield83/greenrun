@@ -52,6 +52,7 @@ The following decisions supersede older statements elsewhere in this document:
 - Multi-activity analysis exports contain runs by default, with an explicit option to include every sport.
 - Comparable runs appear on individual activity pages, not the aggregate Analytics page.
 - The original half-to-half heart-rate drift percentage is replaced by algorithm version 3 workload-adjusted heart-rate response. The model uses recorded speed, smoothed elevation-derived grade, delayed HR response, and elapsed time; it reports adjusted bpm/hour, total adjusted change, model fit/error, and confidence. Track workouts are eligible, while statistically inseparable workload/time patterns receive an exclusion reason.
+- AI track-session reviews (approved 2026-10-08) supersede "Do not integrate with the ChatGPT API or any other AI API" and the AI non-goals in sections 40 and later. The integration is optional and off unless `GREEN_AI_URL` is configured. Greenrun never calls an AI provider itself: the separate green-ai service reads Greenrun's API and calls the model. On a track, tempo, race, or progression activity, Brett can run a review, reply to it, and see exactly what was sent. Proposed changes are limited to the rest of that week and the next week, and nothing changes in the plan until Brett applies a change. Greenrun applies a change only if the session is still planned and unedited since the review. GPS is never sent. Details are in `docs/ai-reviews.md`.
 
 ==================================================
 1. GENERAL APPLICATION BEHAVIOR

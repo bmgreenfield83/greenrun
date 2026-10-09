@@ -13,6 +13,16 @@ services:
     volumes:
       # Garmin Connect sign-in tokens, kept across rebuilds and restarts. See docs/garmin-sync.md.
       - garmin-tokens:/data/garmin
+    networks:
+      default:
+      # Shared with the green-ai service, which reads Greenrun as http://greenrun:8000 and is
+      # reached as http://green-ai:8000. See docs/ai-reviews.md.
+      green:
+        aliases: [greenrun]
 
 volumes:
   garmin-tokens:
+
+networks:
+  green:
+    external: true

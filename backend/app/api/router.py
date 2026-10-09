@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes.activities import router as activities_router
+from app.api.routes.ai_reviews import router as ai_reviews_router
 from app.api.routes.analytics import router as analytics_router
 from app.api.routes.calendar import router as calendar_router
 from app.api.routes.exports import router as exports_router
@@ -24,3 +25,4 @@ api_router.include_router(plan_imports_router, tags=["plan-imports"])
 api_router.include_router(plans_router, tags=["plans"])
 api_router.include_router(settings_router, tags=["settings"])
 api_router.include_router(session_actions_router, tags=["planned-sessions"])
+api_router.include_router(ai_reviews_router, tags=["ai-reviews"])

@@ -16,6 +16,9 @@ v1.1. These are implementation notes, not commitments or active requirements.
 
 ## AI-assisted coaching
 
+AI track-session reviews are now implemented; see [ai-reviews.md](ai-reviews.md). The
+guardrails below still apply to any further AI features.
+
 AI coaching would require separate API credentials and usage billing; a ChatGPT
 subscription does not provide application API credits. Any future integration should
 be opt-in, keep its key only in the root environment configuration, show exactly what

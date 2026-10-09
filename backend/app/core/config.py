@@ -36,6 +36,13 @@ class Settings(BaseSettings):
     garmin_email: str = ""
     garmin_password: SecretStr = SecretStr("")
     garmin_token_dir: str = "~/.garminconnect"
+    # Optional AI track-session reviews through the green-ai service, e.g. http://green-ai:8000.
+    # Empty disables the feature. See docs/ai-reviews.md.
+    green_ai_url: str = ""
+
+    @property
+    def ai_reviews_enabled(self) -> bool:
+        return bool(self.green_ai_url.strip())
 
     @property
     def garmin_configured(self) -> bool:

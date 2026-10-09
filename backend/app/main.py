@@ -13,6 +13,7 @@ from app.core.errors import AppError
 from app.db.client import create_mongo_resources
 from app.db.indexes import ensure_indexes
 from app.frontend import mount_frontend
+from app.services.ai_reviews import GreenAiClient
 from app.services.fit import GarminFitActivityParser
 from app.services.fit.cache import FitPreviewCache
 from app.services.garmin.client import GarminConnectClient
@@ -48,6 +49,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.state.fit_parser = GarminFitActivityParser()
     application.state.fit_preview_cache = FitPreviewCache()
     application.state.plan_preview_cache = PlanPreviewCache()
+    application.state.green_ai_client = (
+        GreenAiClient(resolved_settings.green_ai_url)
+        if resolved_settings.ai_reviews_enabled
+        else None
+    )
     application.state.garmin_client = GarminConnectClient(
         email=resolved_settings.garmin_email,
         password=resolved_settings.garmin_password.get_secret_value(),

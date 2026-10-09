@@ -8,6 +8,8 @@ dependencies = [
   "garmin-fit-sdk>=21.205,<22.0",
   # Pinned: Garmin Connect login/download. Review the source before bumping (see docs/garmin-sync.md).
   "garminconnect==0.3.17",
+  # Calls the green-ai service for AI track-session reviews.
+  "httpx>=0.28,<1.0",
   "pydantic-settings>=2.10,<3.0",
   "pymongo>=4.13,<5.0",
   "python-dotenv>=1.1,<2.0",

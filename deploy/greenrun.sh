@@ -5,10 +5,12 @@ cd "$(dirname "$0")/.."
 compose() { docker compose -f compose.prod.yml "$@"; }
 [ -f .env ] || { echo "Missing .env: copy .env.production.example to .env and fill it in (docs/deployment.md)." >&2; exit 1; }
 port() { v="$(grep '^GREENRUN_PORT=' .env | cut -d= -f2- | tr -d '\r')"; echo "${v:-8440}"; }
+# The Docker network shared with green-ai (docs/ai-reviews.md); created on first use.
+network() { docker network inspect green >/dev/null 2>&1 || docker network create green >/dev/null; }
 
 case "${1:-help}" in
-  start)   compose up -d --build && compose ps ;;
-  update)  git pull --ff-only && compose up -d --build && compose ps ;;
+  start)   network && compose up -d --build && compose ps ;;
+  update)  git pull --ff-only && network && compose up -d --build && compose ps ;;
   stop)    compose down ;;
   status)  compose ps
            curl -fsS "http://127.0.0.1:$(port)/api/health" && echo

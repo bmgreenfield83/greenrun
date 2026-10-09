@@ -61,6 +61,21 @@ docker compose -f compose.prod.yml exec -w /app/backend app python -m app.servic
 Sign-in tokens are kept in the `garmin-tokens` Docker volume, so updates and restarts keep them. Details
 and troubleshooting are in [garmin-sync.md](garmin-sync.md).
 
+## AI reviews (green-ai)
+
+AI track-session reviews ([ai-reviews.md](ai-reviews.md)) need the green-ai service running beside
+Greenrun. Both containers join the shared `green` Docker network: Greenrun is `greenrun` on it and
+green-ai is `green-ai`. Neither the network nor green-ai is published to the tailnet. `deploy/greenrun.sh`
+creates the network if it is missing.
+
+1. Deploy green-ai first, following its `docs/deployment.md` (clone to `/srv/apps/green-ai`, add the
+   OpenAI key to its `.env`, `./deploy/green-ai.sh start`).
+2. Add `GREEN_AI_URL=http://green-ai:8000` to Greenrun's `.env`, then `./deploy/greenrun.sh update`.
+3. Check from the Beelink: `curl -s http://127.0.0.1:8440/api/ai-reviews/status` should return
+   `{"enabled":true}`.
+
+To turn the feature off, empty `GREEN_AI_URL` and run `./deploy/greenrun.sh update`.
+
 ## Health endpoints
 
 - `GET /api/health` returns `{"status":"ok"}` when the process is up (used by the Docker `HEALTHCHECK`).

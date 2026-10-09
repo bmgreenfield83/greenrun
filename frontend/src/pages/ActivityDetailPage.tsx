@@ -45,6 +45,7 @@ const keyStats = new Set([
   "Average speed",
 ]);
 import { ActivityCharts } from "../features/activities/ActivityCharts";
+import { AiReviewSection } from "../features/activities/AiReviewSection";
 import {
   activityType,
   duration,
@@ -458,6 +459,7 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
       </Card>
       <LapTable laps={activity.laps} sport={activity.sport} />
       <TrackGoalSection activity={activity} />
+      <AiReviewSection activity={activity} />
       {heartRateResponse && (
         <Card variant="outlined">
           <CardContent>
