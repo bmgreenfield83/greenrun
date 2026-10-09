@@ -457,9 +457,9 @@ export function ActivityDetailPage({ activityId }: { activityId: string }) {
           </Stack>
         </CardContent>
       </Card>
+      <AiReviewSection activity={activity} />
       <LapTable laps={activity.laps} sport={activity.sport} />
       <TrackGoalSection activity={activity} />
-      <AiReviewSection activity={activity} />
       {heartRateResponse && (
         <Card variant="outlined">
           <CardContent>

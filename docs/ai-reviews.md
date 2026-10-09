@@ -40,9 +40,18 @@ outline with goals. **See what was sent** shows the exact text for each review.
 ## Replies
 
 Replies continue the same review: the model answers and revises only what changes. Replies are much
-cheaper than a new review because the context is already cached. If Brett acknowledges a concern and
-chooses to proceed, the model gives him the safest version of what he asked for and does not repeat
-the concern.
+cheaper than a new review because the context is already cached. Brett has the final say: if he
+disagrees with a change, the model withdraws it so the plan stands as written, without restating the
+concern.
+
+## How conservative the coach is
+
+The plan stands by default. Niggles, including soreness, tightness, intermittent numbness, low HRV and
+poor sleep, are noted but do not change sessions: no cut mileage, no removed strides, no slower pace
+targets. Sessions change only after a clearly failed comparable workout, illness, or a red flag (pain
+that changes gait or stops a run, sharp or worsening pain, or symptoms Brett says are getting worse).
+This is set in green-ai's prompt (`v6`); a review keeps the prompt it started with, so start a new
+review to get the current behavior.
 
 ## Cost and time
 
